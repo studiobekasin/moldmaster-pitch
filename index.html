@@ -241,49 +241,33 @@ const moldMat=new THREE.MeshPhysicalMaterial({color:0xb0e0e6,transparent:true,op
 const gummyMat=new THREE.MeshStandardMaterial({color:0xff4500,roughness:0.25,metalness:0.05});
 
 topHalf=new THREE.Group();bottomHalf=new THREE.Group();innerObj=new THREE.Group();
-var loaded=0;
-function checkAllLoaded(){
-loaded++;if(loaded<2)return;
+
+loader.load('mold_example.glb',function(gltf){
+var root=gltf.scene;
+root.traverse(function(c){
+if(!c.isMesh)return;
+var n=(c.name||'').toLowerCase();
+var cl=c.clone();
+if(n.indexOf('part_a')!==-1||n.indexOf('cavity')!==-1){
+cl.material=moldMat;topHalf.add(cl);
+}else if(n.indexOf('part_b')!==-1||n.indexOf('core')!==-1){
+cl.material=moldMat;bottomHalf.add(cl);
+}else{
+cl.material=gummyMat;innerObj.add(cl);
+}
+});
 group.add(topHalf,bottomHalf,innerObj);
-const fb=new THREE.Box3().setFromObject(group);const fc=fb.getCenter(new THREE.Vector3());const fs=fb.getSize(new THREE.Vector3());
+var fb=new THREE.Box3().setFromObject(group);var fc=fb.getCenter(new THREE.Vector3());var fs=fb.getSize(new THREE.Vector3());
 group.position.set(-fc.x,-fc.y,-fc.z);
 group.scale.setScalar(5/Math.max(fs.x,fs.y,fs.z));
 camera.position.set(0,2,10);camera.lookAt(0,0,0);
 modelReady=true;
-}
-
-// Load the mold (two-part) and split into top/bottom halves
-loader.load('mold_example.glb',function(gltf){
-var root=gltf.scene;var meshes=[];
-root.traverse(function(c){if(c.isMesh)meshes.push(c);});
-var wholeBox=new THREE.Box3().setFromObject(root);
-var center=wholeBox.getCenter(new THREE.Vector3());
-meshes.forEach(function(m,i){
-var cl=m.clone();cl.material=moldMat;
-if(meshes.length>=2){
-var mb=new THREE.Box3().setFromObject(m);
-if(mb.getCenter(new THREE.Vector3()).y>=center.y)topHalf.add(cl);else bottomHalf.add(cl);
-}else{
-var cl2=m.clone();cl2.material=moldMat;
-topHalf.add(cl);bottomHalf.add(cl2);
-}
-});
-checkAllLoaded();
 },undefined,function(){
-var bg=new THREE.BoxGeometry(4,1.5,4);
-topHalf.add(new THREE.Mesh(bg,moldMat));bottomHalf.add(new THREE.Mesh(bg,moldMat));
-checkAllLoaded();
-});
-
-// Load the gummy bear model separately
-loader.load('gummy.glb',function(gltf){
-var root=gltf.scene;
-root.traverse(function(c){if(c.isMesh)c.material=gummyMat;});
-innerObj.add(root);
-checkAllLoaded();
-},undefined,function(){
+topHalf.add(new THREE.Mesh(new THREE.BoxGeometry(4,1.5,4),moldMat));
+bottomHalf.add(new THREE.Mesh(new THREE.BoxGeometry(4,1.5,4),moldMat));
 innerObj.add(new THREE.Mesh(new THREE.TorusKnotGeometry(0.8,0.25,100,16),gummyMat));
-checkAllLoaded();
+group.add(topHalf,bottomHalf,innerObj);
+camera.position.set(0,2,10);camera.lookAt(0,0,0);modelReady=true;
 });
 
 function updateScroll(){
