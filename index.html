@@ -59,7 +59,8 @@
 <section id="hero" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
 <div class="inline-flex items-center px-4 py-1.5 rounded-full bg-teal-100 text-teal-800 font-semibold text-sm mb-6"><i class="fa-solid fa-rocket mr-2"></i><span data-en="Revolutionizing Rapid Prototyping" data-bg="Революция в бързото прототипиране">Revolutionizing Rapid Prototyping</span></div>
 <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6"><span data-en="Flawless Molds from" data-bg="Перфектни калъпи от">Flawless Molds from</span><br/><span class="text-teal-600" data-en="Any Mesh." data-bg="всякакъв модел.">Any Mesh.</span></h1>
-<p class="text-xl text-stone-500 max-w-2xl mb-8" data-en="Empowering small businesses, startups, and amateurs to generate professional two-part injection and open tray molds instantly. We automatically fix non-manifold meshes so you don't have to. 3D print the mold at home or have it machined and we will send it to you." data-bg="Помагаме на малки фирми, стартъпи и любители да създават професионални двукомпонентни и отворени калъпи за секунди. Автоматично поправяме проблемни 3D модели вместо вас. Принтирайте калъпа на 3D принтер у дома или го поръчайте при нас — ние ще ви го доставим.">Empowering small businesses, startups, and amateurs to generate professional two-part injection and open tray molds instantly. We automatically fix non-manifold meshes so you don't have to. 3D print the mold at home or have it machined and we will send it to you.</p>
+<p class="text-lg text-stone-500 max-w-xl mb-4" data-en="Upload any 3D file. Get a production-ready mold. We fix broken meshes automatically." data-bg="Качете произволен 3D файл. Получете готов за производство калъп. Поправяме проблемни модели автоматично.">Upload any 3D file. Get a production-ready mold. We fix broken meshes automatically.</p>
+<img src="printer.svg" alt="3D Printer" class="w-16 h-16 mb-6 opacity-60" style="filter: invert(40%) sepia(60%) saturate(500%) hue-rotate(140deg);" />
 <form id="hero-signup-form" class="flex flex-col sm:flex-row w-full max-w-lg mx-auto gap-3">
 <input type="email" id="hero-email-input" required placeholder="Enter your email for a free trial" data-en="Enter your email for a free trial" data-bg="Въведете имейл за безплатен пробен период" class="flex-1 px-5 py-4 rounded-lg border border-stone-300 text-stone-800 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"/>
 <button type="submit" class="btn-3d" data-en="GET FREE TRIAL" data-bg="БЕЗПЛАТЕН ТЕСТ">GET FREE TRIAL</button>
@@ -240,51 +241,50 @@ const loader=new THREE.GLTFLoader();
 const moldMat=new THREE.MeshPhysicalMaterial({color:0xb0e0e6,transparent:true,opacity:0.45,roughness:0.15,metalness:0.05,side:THREE.DoubleSide});
 const gummyMat=new THREE.MeshStandardMaterial({color:0xff4500,roughness:0.25,metalness:0.05});
 
-loader.load('mold_example.glb',function(gltf){
-const root=gltf.scene;const meshes=[];
-root.traverse(function(c){if(c.isMesh)meshes.push(c);});
-if(meshes.length===0)return;
-const wholeBox=new THREE.Box3().setFromObject(root);
-const center=wholeBox.getCenter(new THREE.Vector3());
 topHalf=new THREE.Group();bottomHalf=new THREE.Group();innerObj=new THREE.Group();
-
-if(meshes.length>=3){
-meshes.forEach(function(m,i){
-const cl=m.clone();
-if(i===0){cl.material=moldMat;topHalf.add(cl);}
-else if(i===meshes.length-1){cl.material=moldMat;bottomHalf.add(cl);}
-else{cl.material=gummyMat;innerObj.add(cl);}
-});
-}else if(meshes.length===2){
-meshes.forEach(function(m,i){
-const cl=m.clone();cl.material=moldMat;
-const mb=new THREE.Box3().setFromObject(m);
-if(mb.getCenter(new THREE.Vector3()).y>=center.y)topHalf.add(cl);else bottomHalf.add(cl);
-});
-}else{
-const cl=meshes[0].clone();cl.material=moldMat;
-const cl2=meshes[0].clone();cl2.material=moldMat;
-topHalf.add(cl);bottomHalf.add(cl2);
-}
-if(innerObj.children.length===0){
-const sz=wholeBox.getSize(new THREE.Vector3());
-const geo=new THREE.SphereGeometry(sz.x*0.2,32,32);
-const gummy=new THREE.Mesh(geo,gummyMat);gummy.position.copy(center);
-innerObj.add(gummy);
-}
+var loaded=0;
+function checkAllLoaded(){
+loaded++;if(loaded<2)return;
 group.add(topHalf,bottomHalf,innerObj);
 const fb=new THREE.Box3().setFromObject(group);const fc=fb.getCenter(new THREE.Vector3());const fs=fb.getSize(new THREE.Vector3());
 group.position.set(-fc.x,-fc.y,-fc.z);
 group.scale.setScalar(5/Math.max(fs.x,fs.y,fs.z));
 camera.position.set(0,2,10);camera.lookAt(0,0,0);
 modelReady=true;
+}
+
+// Load the mold (two-part) and split into top/bottom halves
+loader.load('mold_example.glb',function(gltf){
+var root=gltf.scene;var meshes=[];
+root.traverse(function(c){if(c.isMesh)meshes.push(c);});
+var wholeBox=new THREE.Box3().setFromObject(root);
+var center=wholeBox.getCenter(new THREE.Vector3());
+meshes.forEach(function(m,i){
+var cl=m.clone();cl.material=moldMat;
+if(meshes.length>=2){
+var mb=new THREE.Box3().setFromObject(m);
+if(mb.getCenter(new THREE.Vector3()).y>=center.y)topHalf.add(cl);else bottomHalf.add(cl);
+}else{
+var cl2=m.clone();cl2.material=moldMat;
+topHalf.add(cl);bottomHalf.add(cl2);
+}
+});
+checkAllLoaded();
 },undefined,function(){
-topHalf=new THREE.Group();bottomHalf=new THREE.Group();innerObj=new THREE.Group();
-const bg=new THREE.BoxGeometry(4,1.5,4);
+var bg=new THREE.BoxGeometry(4,1.5,4);
 topHalf.add(new THREE.Mesh(bg,moldMat));bottomHalf.add(new THREE.Mesh(bg,moldMat));
+checkAllLoaded();
+});
+
+// Load the gummy bear model separately
+loader.load('mold_example_gummy.glb',function(gltf){
+var root=gltf.scene;
+root.traverse(function(c){if(c.isMesh)c.material=gummyMat;});
+innerObj.add(root);
+checkAllLoaded();
+},undefined,function(){
 innerObj.add(new THREE.Mesh(new THREE.TorusKnotGeometry(0.8,0.25,100,16),gummyMat));
-group.add(topHalf,bottomHalf,innerObj);
-camera.position.set(0,2,10);camera.lookAt(0,0,0);modelReady=true;
+checkAllLoaded();
 });
 
 function updateScroll(){
