@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoldMaster — Pitch Presentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; }
+
+        .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 60px 80px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease, transform 0.5s ease; transform: translateX(60px); }
+        .slide.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
+        .slide.exit-left { opacity: 0; transform: translateX(-60px); }
+
+        .slide-inner { max-width: 1100px; width: 100%; }
+        h1 { font-size: 4rem; font-weight: 900; line-height: 1.1; margin-bottom: 1rem; }
+        h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
+        h3 { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
+        p, li { font-size: 1.15rem; line-height: 1.7; color: #94a3b8; }
+        .accent { color: #0d9488; }
+        .tag { display: inline-block; background: rgba(13,148,136,0.15); color: #5eead4; font-size: 0.85rem; font-weight: 700; padding: 6px 16px; border-radius: 100px; margin-bottom: 1.5rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 2rem; }
+        .card i { font-size: 2rem; color: #0d9488; margin-bottom: 1rem; display: block; }
+
+        .price { font-size: 3rem; font-weight: 900; color: #f8fafc; }
+        .price span { font-size: 1rem; font-weight: 400; color: #64748b; }
+
+        .stat-row { display: flex; gap: 3rem; margin-top: 2rem; }
+        .stat-num { font-size: 3rem; font-weight: 900; color: #0d9488; }
+        .stat-label { font-size: 0.95rem; color: #64748b; margin-top: 0.25rem; }
+
+        /* Navigation */
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: rgba(15,23,42,0.9); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; gap: 1.5rem; z-index: 100; }
+        .nav-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .nav-btn:hover { background: #0d9488; color: white; border-color: #0d9488; }
+        .slide-counter { color: #64748b; font-size: 0.85rem; font-weight: 600; min-width: 60px; text-align: center; }
+        .home-btn { position: fixed; top: 24px; left: 24px; z-index: 100; text-decoration: none; }
+
+        .progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, #0d9488, #06b6d4); transition: width 0.4s ease; z-index: 200; }
+
+        @media (max-width: 768px) {
+            .slide { padding: 40px 24px; }
+            h1 { font-size: 2.2rem; }
+            h2 { font-size: 1.6rem; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .stat-row { flex-direction: column; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<a href="index.html" class="home-btn">
+    <button class="nav-btn" title="Back to MoldMaster"><i class="fa-solid fa-house"></i></button>
+</a>
+
+<!-- SLIDES -->
+<div id="slides-container">
+
+    <!-- Slide 1: Title -->
+    <div class="slide active" data-slide="0">
+        <div class="slide-inner">
+            <div class="tag"><i class="fa-solid fa-gear" style="margin-right:6px"></i> MoldMaster</div>
+            <h1>Flawless Molds from <span class="accent">Any Mesh.</span></h1>
+            <p style="max-width:640px; font-size:1.3rem; margin-top:1rem;">Empowering small businesses, startups, and amateurs to generate professional molds instantly from any 3D file.</p>
+        </div>
+    </div>
+
+    <!-- Slide 2: Problem -->
+    <div class="slide" data-slide="1">
+        <div class="slide-inner">
+            <div class="tag">The Problem</div>
+            <h2>The Rapid Prototyping Bottleneck</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i>
+                    <h3>Non-Manifold Failures</h3>
+                    <p>Most software rejects standard 3D meshes. Amateurs can't fix broken geometry.</p>
+                </div>
+                <div class="card">
+                    <i class="fa-solid fa-sack-dollar" style="color:#f59e0b"></i>
+                    <h3>High Cost of Iteration</h3>
+                    <p>Converting messy files to CAD costs thousands of dollars and weeks of time.</p>
+                </div>
+                <div class="card">
+                    <i class="fa-solid fa-puzzle-piece" style="color:#f97316"></i>
+                    <h3>Fragmented Tooling</h3>
+                    <p>Different software needed for open trays vs. two-part molds. Steep learning curve.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Solution -->
+    <div class="slide" data-slide="2">
+        <div class="slide-inner">
+            <div class="tag">Our Solution</div>
+            <h2>The Universal Mold Engine</h2>
+            <p style="max-width:700px; margin-bottom:2rem;">Upload any mesh — broken or clean — and get a production-ready mold in seconds.</p>
+            <div class="grid-2">
+                <div class="card">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <h3>Auto-Healing Mesh Engine</h3>
+                    <p>Automatically repairs non-manifold edges and holes in any 3D file.</p>
+                </div>
+                <div class="card">
+                    <i class="fa-solid fa-file-export"></i>
+                    <h3>Professional .STEP Export</h3>
+                    <p>Native CAD output for precision CNC machining and industrial tooling.</p>
+                </div>
+                <div class="card">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <h3>Two-Part Molds</h3>
+                    <p>Core, cavity, alignment pins, and pour holes — generated automatically.</p>
+                </div>
+                <div class="card">
+                    <i class="fa-regular fa-square"></i>
+                    <h3>Open Tray Molds</h3>
+                    <p>Flat-backed blocks for soap, concrete, silicone, and simple casting.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Market -->
+    <div class="slide" data-slide="3">
+        <div class="slide-inner">
+            <div class="tag">Competitive Landscape</div>
+            <h2>We Own the "Missing Middle"</h2>
+            <div class="grid-3" style="margin-top:2.5rem;">
+                <div class="card" style="border-color:rgba(13,148,136,0.3);">
+                    <h3 class="accent">MoldMaster</h3>
+                    <p>Instant digital file output (.STEP & Mesh). Cloud auto-healing. Works with any mesh quality.</p>
+                </div>
+                <div class="card">
+                    <h3>Basic Generators</h3>
+                    <p>Open-tray only. Fail on complex meshes. No .STEP export. No 2-part support.</p>
+                </div>
+                <div class="card">
+                    <h3>Enterprise CAD / Lock-ins</h3>
+                    <p>Expensive licenses or locked-in manufacturing. Won't sell you the digital file.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Business Model -->
+    <div class="slide" data-slide="4">
+        <div class="slide-inner">
+            <div class="tag">Business Model</div>
+            <h2>Three Revenue Streams</h2>
+            <div class="grid-3" style="margin-top:2rem;">
+                <div class="card">
+                    <div class="price">$9.99 <span>/export</span></div>
+                    <h3 style="margin-top:1rem;">Digital Download</h3>
+                    <p>Download .STEP & Mesh. Auto repair. Open tray or 2-part.</p>
+                </div>
+                <div class="card" style="border-color:rgba(13,148,136,0.4); background:rgba(13,148,136,0.08);">
+                    <div class="price">$49+ <span>/mold</span></div>
+                    <h3 style="margin-top:1rem;">Physical Production</h3>
+                    <p>We 3D print or CNC machine the mold and ship it to your door.</p>
+                </div>
+                <div class="card">
+                    <div class="price">$99 <span>/mo</span></div>
+                    <h3 style="margin-top:1rem;">Pro Subscription</h3>
+                    <p>Unlimited exports. Priority processing. 20% off manufactured parts.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: Traction -->
+    <div class="slide" data-slide="5">
+        <div class="slide-inner">
+            <div class="tag">Growth Projections</div>
+            <h2>Path to <span class="accent">$720K ARR</span> by Year 3</h2>
+            <div class="stat-row">
+                <div><div class="stat-num">6,000</div><div class="stat-label">Active Pro Users (Year 3)</div></div>
+                <div><div class="stat-num">8,000</div><div class="stat-label">Individual Exports / Month</div></div>
+                <div><div class="stat-num">$600K</div><div class="stat-label">Monthly Subscription Revenue</div></div>
+            </div>
+            <p style="margin-top:2.5rem; max-width:600px;">Subscriptions provide predictable MRR while digital and physical sales serve as an acquisition funnel. Scaling from 20 beta users to Year 3 targets.</p>
+        </div>
+    </div>
+
+    <!-- Slide 7: CTA -->
+    <div class="slide" data-slide="6">
+        <div class="slide-inner" style="text-align:center;">
+            <div class="tag">Join Us</div>
+            <h1>Ready to Master <br>Your <span class="accent">Molds?</span></h1>
+            <p style="font-size:1.3rem; margin:1.5rem auto 2.5rem; max-width:500px;">Get early access to the beta and a lifetime discount on your first subscription.</p>
+            <a href="index.html#signup" style="display:inline-block; padding:16px 40px; background:#0d9488; color:white; border-radius:12px; text-decoration:none; font-weight:700; font-size:1.1rem; transition:all 0.2s;">Get Early Access &rarr;</a>
+        </div>
+    </div>
+</div>
+
+<!-- NAV BAR -->
+<div class="nav-bar">
+    <button class="nav-btn" id="prev-btn"><i class="fa-solid fa-chevron-left"></i></button>
+    <div class="slide-counter" id="counter">1 / 7</div>
+    <button class="nav-btn" id="next-btn"><i class="fa-solid fa-chevron-right"></i></button>
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    let current = 0;
+
+    function goTo(idx) {
+        if (idx < 0 || idx >= total) return;
+        slides[current].classList.remove('active');
+        slides[current].classList.add('exit-left');
+        setTimeout(() => slides[current === idx ? current : (idx > current ? current : current)].classList.remove('exit-left'), 500);
+        const prev = current;
+        current = idx;
+        slides.forEach((s, i) => { if (i !== current) { s.classList.remove('active','exit-left'); } });
+        slides[current].classList.add('active');
+        document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+        document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', () => goTo(current - 1));
+    document.getElementById('next-btn').addEventListener('click', () => goTo(current + 1));
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === ' ') goTo(current + 1);
+        if (e.key === 'ArrowLeft') goTo(current - 1);
+    });
+
+    // Swipe support
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+    document.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].screenX - touchStartX;
+        if (dx < -50) goTo(current + 1);
+        if (dx > 50) goTo(current - 1);
+    });
+
+    document.getElementById('progress').style.width = (1 / total * 100) + '%';
+</script>
+</body>
+</html>

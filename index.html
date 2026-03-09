@@ -9,639 +9,327 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        stone: { 50:'#fafaf9',100:'#f5f5f4',200:'#e7e5e4',300:'#d6d3d1',400:'#a8a29e',500:'#78716c',600:'#57534e',700:'#44403c',800:'#292524',900:'#1c1917' },
-                        teal: { 600:'#0d9488',700:'#0f766e' }
-                    },
-                    fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif'] }
-                }
-            }
-        }
+        tailwind.config={theme:{extend:{colors:{stone:{50:'#fafaf9',100:'#f5f5f4',200:'#e7e5e4',300:'#d6d3d1',400:'#a8a29e',500:'#78716c',600:'#57534e',700:'#44403c',800:'#292524',900:'#1c1917'},teal:{600:'#0d9488',700:'#0f766e'}},fontFamily:{sans:['Inter','ui-sans-serif','system-ui','sans-serif']}}}}
     </script>
     <style>
-        body { background-color: #fafaf9; color: #292524; scroll-behavior: smooth; }
-        .chart-container { position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 400px; max-height: 50vh; }
-        @media (max-width: 640px) { .chart-container { height: 300px; } }
-        .nav-link { transition: color 0.3s; }
-        .nav-link:hover { color: #0d9488; }
-        .tab-btn { transition: all 0.3s ease; }
-        .tab-btn.active { background-color: #0d9488; color: white; border-color: #0d9488; }
-        .glass-panel { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); }
+        body{background-color:#fafaf9;color:#292524;scroll-behavior:smooth}
+        .chart-container{position:relative;width:100%;max-width:700px;margin:0 auto;height:400px;max-height:50vh}
+        @media(max-width:640px){.chart-container{height:300px}}
+        .nav-link{transition:color .3s}.nav-link:hover{color:#0d9488}
+        .tab-btn{transition:all .3s ease}.tab-btn.active{background-color:#0d9488;color:#fff;border-color:#0d9488}
+        .glass-panel{background:rgba(255,255,255,.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.3)}
 
-        /* 3D Mold Preview - fixed background */
-        #mold-3d-section { position: relative; height: 200vh; }
-        #mold-3d-canvas-wrap { position: sticky; top: 0; height: 100vh; width: 100%; overflow: hidden; background: #1c1917; }
-        #mold-3d-overlay { position: absolute; bottom: 2rem; left: 0; right: 0; text-align: center; z-index: 10; pointer-events: none; }
+        /* 3D BUTTON */
+        .btn-3d{font-family:'Inconsolata',monospace;font-weight:700;font-size:1.1em;color:#fff;cursor:pointer;display:inline-block;letter-spacing:.075em;padding:.8em 1.6em;position:relative;text-transform:uppercase;text-decoration:none;background:linear-gradient(135deg,#ff6a00,#ee0000);border:3px solid #ff4500;z-index:1;box-shadow:-.5em .5em transparent;transform-origin:left bottom;transition:all 200ms ease-in-out}
+        .btn-3d::before,.btn-3d::after{content:'';display:block;position:absolute;z-index:-1;transition:all 200ms ease-in-out;opacity:0}
+        .btn-3d::before{background:linear-gradient(to bottom,#cc3700,#b83000);border:3px solid #cc3700;left:-.59em;top:.15em;width:.31em;height:100%;transform:skewY(-45deg)}
+        .btn-3d::after{background:linear-gradient(to right,#aa2500,#cc3700);border:3px solid #aa2500;bottom:-.61em;right:.16em;width:100%;height:.31em;transform:skewX(-45deg)}
+        .btn-3d:hover{transform:translate(.5em,-.5em);box-shadow:-1em 1em .15em rgba(16,24,50,.1);background:linear-gradient(135deg,#ff7a1a,#ff1a1a)}
+        .btn-3d:hover::before{opacity:1;height:calc(100% - .13em)}
+        .btn-3d:hover::after{opacity:1;width:calc(100% - .13em)}
 
-        /* 3D Hover CTA Button */
-        .btn-3d-cta {
-            position: relative;
-            display: inline-block;
-            padding: 1rem 2rem;
-            font-weight: 800;
-            font-size: 1.125rem;
-            color: #fff;
-            background: linear-gradient(135deg, #f43f00 0%, #ff6b35 100%);
-            border: none;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: all 200ms ease-in-out;
-            transform-style: preserve-3d;
-            transform: perspective(500px) translateZ(0);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            letter-spacing: 0.04em;
-            white-space: nowrap;
-        }
-        .btn-3d-cta::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 0.5rem;
-            background: linear-gradient(135deg, #d63500 0%, #e05a2a 100%);
-            transform: translateZ(-1px);
-            transition: all 200ms ease-in-out;
-            z-index: -1;
-        }
-        .btn-3d-cta::after {
-            content: '';
-            position: absolute;
-            bottom: -6px; left: 4px; right: 4px;
-            height: 8px;
-            border-radius: 0 0 0.5rem 0.5rem;
-            background: #b02d00;
-            transform: scaleY(0);
-            transform-origin: top;
-            transition: all 200ms ease-in-out;
-            z-index: -2;
-        }
-        .btn-3d-cta:hover {
-            transform: perspective(500px) translateY(-4px) translateZ(10px);
-            box-shadow: 0 12px 30px rgba(244,63,0,0.35), 0 4px 8px rgba(0,0,0,0.15);
-            background: linear-gradient(135deg, #ff5216 0%, #ff7e4d 100%);
-        }
-        .btn-3d-cta:hover::after {
-            transform: scaleY(1);
-        }
-        .btn-3d-cta:active {
-            transform: perspective(500px) translateY(0) translateZ(0);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .btn-3d-cta:active::after { transform: scaleY(0); }
-
-        /* Pitch Deck Viewer */
-        #pitch-viewer { display: none; position: fixed; inset: 0; z-index: 9999; background: #fafaf9; flex-direction: column; }
-        #pitch-viewer.active { display: flex; }
-        #pitch-viewer iframe { flex: 1; border: none; }
-        #pitch-nav { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1rem; z-index: 10; }
-        #pitch-nav button { padding: 0.75rem 1.5rem; background: #292524; color: white; border-radius: 0.5rem; font-weight: 700; border: none; cursor: pointer; transition: background 0.2s; }
-        #pitch-nav button:hover { background: #0d9488; }
-        #pitch-home { position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10; padding: 0.5rem 1rem; background: #292524; color: white; border-radius: 0.5rem; font-weight: 700; border: none; cursor: pointer; font-size: 0.875rem; }
-        #pitch-home:hover { background: #ef4444; }
+        /* SCROLL 3D */
+        #mold-3d-section{position:relative;height:200vh}
+        #mold-3d-sticky{position:sticky;top:0;height:100vh;overflow:hidden}
+        #mold-canvas-wrap{position:absolute;inset:0}
+        .mold-scroll-hint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:.85rem;text-align:center;animation:bh 2s infinite;z-index:10;pointer-events:none;transition:opacity .3s}
+        @keyframes bh{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
     </style>
 </head>
 <body class="font-sans antialiased text-stone-800 bg-stone-50">
 
-    <!-- Pitch Deck Viewer Overlay -->
-    <div id="pitch-viewer">
-        <button id="pitch-home" onclick="closePitchViewer()"><i class="fa-solid fa-house mr-2"></i>Back to MoldMaster</button>
-        <div id="pitch-slides-container" style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
-            <div id="pitch-slide-content" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
-                <p class="text-stone-400 text-lg">Loading presentation...</p>
-            </div>
-        </div>
-        <div id="pitch-nav">
-            <button onclick="pitchPrev()"><i class="fa-solid fa-arrow-left mr-2"></i>Prev</button>
-            <span id="pitch-page" class="self-center font-bold text-stone-600 text-sm" style="align-self:center;"></span>
-            <button onclick="pitchNext()">Next<i class="fa-solid fa-arrow-right ml-2"></i></button>
-        </div>
-    </div>
+<nav class="fixed top-0 w-full z-50 glass-panel shadow-sm border-b border-stone-200">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between h-16">
+<div class="flex items-center"><i class="fa-solid fa-gear text-2xl text-teal-600 mr-2"></i><span class="text-2xl font-bold text-teal-600">MoldMaster</span></div>
+<div class="hidden md:flex items-center space-x-6">
+<a href="#problem" class="nav-link font-medium" data-en="The Problem" data-bg="Проблемът">The Problem</a>
+<a href="#solution" class="nav-link font-medium" data-en="Our Solution" data-bg="Нашето решение">Our Solution</a>
+<a href="#mold-types" class="nav-link font-medium" data-en="Mold Types" data-bg="Видове калъпи">Mold Types</a>
+<a href="#market" class="nav-link font-medium" data-en="Market" data-bg="Пазар">Market</a>
+<a href="#business" class="nav-link font-medium" data-en="Business Model" data-bg="Бизнес модел">Business Model</a>
+<div class="flex items-center ml-4 pl-4 border-l border-stone-300 space-x-2">
+<button onclick="toggleLanguage('en')" id="lang-btn-en" class="text-sm font-bold text-teal-600 transition">EN</button>
+<span class="text-stone-300">|</span>
+<button onclick="toggleLanguage('bg')" id="lang-btn-bg" class="text-sm font-bold text-stone-500 hover:text-teal-600 transition">BG</button>
+</div></div></div></div></nav>
 
-    <nav class="fixed top-0 w-full z-50 glass-panel shadow-sm border-b border-stone-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <i class="fa-solid fa-gear text-2xl text-teal-600 mr-2"></i>
-                    <span class="text-2xl font-bold text-teal-600">MoldMaster</span>
-                </div>
-                <div class="hidden md:flex items-center space-x-6">
-                    <a href="#problem" class="nav-link font-medium" data-en="The Problem" data-bg="Проблемът">The Problem</a>
-                    <a href="#solution" class="nav-link font-medium" data-en="Our Solution" data-bg="Нашето решение">Our Solution</a>
-                    <a href="#mold-types" class="nav-link font-medium" data-en="Mold Types" data-bg="Видове калъпи">Mold Types</a>
-                    <a href="#market" class="nav-link font-medium" data-en="Market" data-bg="Пазар">Market</a>
-                    <a href="#business" class="nav-link font-medium" data-en="Business Model" data-bg="Бизнес модел">Business Model</a>
-                    <div class="flex items-center ml-4 pl-4 border-l border-stone-300 space-x-2">
-                        <button onclick="toggleLanguage('en')" id="lang-btn-en" class="text-sm font-bold text-teal-600 transition">EN</button>
-                        <span class="text-stone-300">|</span>
-                        <button onclick="toggleLanguage('bg')" id="lang-btn-bg" class="text-sm font-bold text-stone-500 hover:text-teal-600 transition">BG</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+<section id="hero" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
+<div class="inline-flex items-center px-4 py-1.5 rounded-full bg-teal-100 text-teal-800 font-semibold text-sm mb-6"><i class="fa-solid fa-rocket mr-2"></i><span data-en="Revolutionizing Rapid Prototyping" data-bg="Революция в бързото прототипиране">Revolutionizing Rapid Prototyping</span></div>
+<h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6"><span data-en="Flawless Molds from" data-bg="Перфектни калъпи от">Flawless Molds from</span><br/><span class="text-teal-600" data-en="Any Mesh." data-bg="всякакъв модел.">Any Mesh.</span></h1>
+<p class="text-xl text-stone-500 max-w-2xl mb-8" data-en="Empowering small businesses, startups, and amateurs to generate professional two-part injection and open tray molds instantly. We automatically fix non-manifold meshes so you don't have to. 3D print the mold at home or have it machined and we will send it to you." data-bg="Помагаме на малки фирми, стартъпи и любители да създават професионални двукомпонентни и отворени калъпи за секунди. Автоматично поправяме проблемни 3D модели вместо вас. Принтирайте калъпа на 3D принтер у дома или го поръчайте при нас — ние ще ви го доставим.">Empowering small businesses, startups, and amateurs to generate professional two-part injection and open tray molds instantly. We automatically fix non-manifold meshes so you don't have to. 3D print the mold at home or have it machined and we will send it to you.</p>
+<form id="hero-signup-form" class="flex flex-col sm:flex-row w-full max-w-lg mx-auto gap-3">
+<input type="email" id="hero-email-input" required placeholder="Enter your email for a free trial" data-en="Enter your email for a free trial" data-bg="Въведете имейл за безплатен пробен период" class="flex-1 px-5 py-4 rounded-lg border border-stone-300 text-stone-800 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"/>
+<button type="submit" class="btn-3d" data-en="GET FREE TRIAL" data-bg="БЕЗПЛАТЕН ТЕСТ">GET FREE TRIAL</button>
+</form>
+<p id="hero-form-success" class="text-teal-600 mt-3 hidden font-medium" data-en="Thanks! Check your inbox for your free trial details." data-bg="Благодарим! Проверете пощата си за подробности.">Thanks! Check your inbox for your free trial details.</p>
+<div class="mt-8 flex space-x-6 justify-center text-sm font-semibold text-stone-500">
+<a href="#solution" class="hover:text-teal-600 transition" data-en="Explore Solution &darr;" data-bg="Разгледай решението &darr;">Explore Solution &darr;</a>
+<span>&bull;</span>
+<a href="presentation.html" class="hover:text-teal-600 transition font-bold" data-en="PRESENTATION" data-bg="ПРЕЗЕНТАЦИЯ">PRESENTATION</a>
+<span>&bull;</span>
+<a href="#business" class="hover:text-teal-600 transition" data-en="Business Model &darr;" data-bg="Бизнес модел &darr;">Business Model &darr;</a>
+</div></section>
 
-    <!-- HERO -->
-    <section id="hero" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div class="inline-flex items-center px-4 py-1.5 rounded-full bg-teal-100 text-teal-800 font-semibold text-sm mb-6">
-            <i class="fa-solid fa-rocket mr-2"></i>
-            <span data-en="Revolutionizing Rapid Prototyping" data-bg="Революция в бързото прототипиране">Revolutionizing Rapid Prototyping</span>
-        </div>
-        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
-            <span data-en="Flawless Molds from" data-bg="Перфектни калъпи от">Flawless Molds from</span> <br/>
-            <span class="text-teal-600" data-en="Any Mesh." data-bg="всякакъв меш.">Any Mesh.</span>
-        </h1>
-        <p class="text-xl text-stone-500 max-w-2xl mb-8" data-en="Empowering small businesses, startups, and amateurs to generate professional two-part injection and open tray molds instantly. We automatically fix non-manifold meshes so you don't have to. 3D print the mold at home or have it machined and we will send it to you." data-bg="Даваме възможност на малки бизнеси, стартъпи и любители да генерират професионални двучастни и отворени калъпи мигновено. Автоматично поправяме дефектни мрежи, за да не се налага вие да го правите. Отпечатайте калъпа на 3D принтер у дома или поръчайте машинна изработка и ние ще ви го изпратим.">
-            Empowering small businesses, startups, and amateurs to generate professional two-part injection and open tray molds instantly. We automatically fix non-manifold meshes so you don't have to. 3D print the mold at home or have it machined and we will send it to you.
-        </p>
-        <form id="hero-signup-form" class="flex flex-col sm:flex-row w-full max-w-lg mx-auto gap-3">
-            <input type="email" id="hero-email-input" required placeholder="Enter your email for a free trial" data-en="Enter your email for a free trial" data-bg="Въведете имейл за безплатен пробен период" class="flex-1 px-5 py-4 rounded-lg border border-stone-300 text-stone-800 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm" />
-            <button type="submit" class="btn-3d-cta" data-en="Get Free Trial" data-bg="Безплатен пробен период">Get Free Trial</button>
-        </form>
-        <p id="hero-form-success" class="text-teal-600 mt-3 hidden font-medium" data-en="Thanks! Check your inbox for your free trial details." data-bg="Благодарим! Проверете пощата си за подробности.">Thanks! Check your inbox for your free trial details.</p>
-        <div class="mt-8 flex space-x-6 justify-center text-sm font-semibold text-stone-500">
-            <a href="#solution" class="hover:text-teal-600 transition" data-en="Explore Solution &darr;" data-bg="Разгледай решението &darr;">Explore Solution &darr;</a>
-            <span>&bull;</span>
-            <a href="javascript:void(0)" onclick="openPitchViewer()" class="hover:text-teal-600 transition" data-en="View Pitch Deck &rarr;" data-bg="Виж презентацията &rarr;">View Pitch Deck &rarr;</a>
-            <span>&bull;</span>
-            <a href="#business" class="hover:text-teal-600 transition" data-en="Business Model &darr;" data-bg="Бизнес модел &darr;">Business Model &darr;</a>
-        </div>
-    </section>
+<section id="problem" class="py-20 bg-white border-y border-stone-200">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="text-center mb-16">
+<h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="The Rapid Prototyping Bottleneck" data-bg="Тесното място в бързото прототипиране">The Rapid Prototyping Bottleneck</h2>
+<p class="text-lg text-stone-500 max-w-3xl mx-auto" data-en="Small businesses and amateurs face massive hurdles when moving from a digital 3D model to a physical mold. The industry tools are gatekept by complexity and strict file requirements." data-bg="Малките фирми и любителите се сблъскват с огромни пречки при преминаването от цифров 3D модел към физически калъп. Професионалните инструменти изискват специализирани познания и строго определени файлови формати.">Small businesses and amateurs face massive hurdles when moving from a digital 3D model to a physical mold. The industry tools are gatekept by complexity and strict file requirements.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-stone-50 p-8 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition text-center md:text-left">
+<i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-4 block"></i>
+<h3 class="text-xl font-bold mb-2" data-en="Non-Manifold Mesh Failures" data-bg="Проблеми с некоректна геометрия">Non-Manifold Mesh Failures</h3>
+<p class="text-stone-600" data-en="Most software outright rejects standard 3D meshes downloaded from the internet. Amateurs do not know how to fix non-manifold geometry, halting production before it starts." data-bg="Повечето програми направо отхвърлят стандартни 3D модели от интернет. Начинаещите не знаят как да поправят некоректна геометрия, което спира производството още преди да е започнало.">Most software outright rejects standard 3D meshes downloaded from the internet. Amateurs do not know how to fix non-manifold geometry, halting production before it starts.</p>
+</div>
+<div class="bg-stone-50 p-8 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition text-center md:text-left">
+<i class="fa-solid fa-sack-dollar text-4xl text-amber-500 mb-4 block"></i>
+<h3 class="text-xl font-bold mb-2" data-en="High Cost of Iteration" data-bg="Скъпо и бавно усъвършенстване">High Cost of Iteration</h3>
+<p class="text-stone-600" data-en="Hiring engineers to convert messy files into proper CAD formats for tooling costs thousands of dollars and weeks of time, killing startup momentum." data-bg="Наемането на инженери за конвертиране на файлове в правилни CAD формати струва хиляди долари и седмици, което убива инерцията на стартъпите.">Hiring engineers to convert messy files into proper CAD formats for tooling costs thousands of dollars and weeks of time, killing startup momentum.</p>
+</div>
+<div class="bg-stone-50 p-8 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition text-center md:text-left">
+<i class="fa-solid fa-puzzle-piece text-4xl text-orange-500 mb-4 block"></i>
+<h3 class="text-xl font-bold mb-2" data-en="Fragmented Tooling" data-bg="Разпокъсани инструменти">Fragmented Tooling</h3>
+<p class="text-stone-600" data-en="Different software is needed for open tray molds versus two-part injection molds. Users are forced to learn multiple complex environments." data-bg="За различните типове калъпи е необходим различен софтуер. Потребителите са принудени да учат множество сложни програми.">Different software is needed for open tray molds versus two-part injection molds. Users are forced to learn multiple complex environments.</p>
+</div></div></div></section>
 
-    <!-- PROBLEM -->
-    <section id="problem" class="py-20 bg-white border-y border-stone-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="The Rapid Prototyping Bottleneck" data-bg="Тесното място в бързото прототипиране">The Rapid Prototyping Bottleneck</h2>
-                <p class="text-lg text-stone-500 max-w-3xl mx-auto" data-en="Small businesses and amateurs face massive hurdles when moving from a digital 3D model to a physical mold. The industry tools are gatekept by complexity and strict file requirements." data-bg="Малките бизнеси и любителите се сблъскват с огромни пречки при превръщането на цифров 3D модел във физически калъп. Професионалните инструменти са недостъпни заради сложността и строгите изисквания към файловете.">
-                    Small businesses and amateurs face massive hurdles when moving from a digital 3D model to a physical mold. The industry tools are gatekept by complexity and strict file requirements.
-                </p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-stone-50 p-8 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition text-center md:text-left">
-                    <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-4 block"></i>
-                    <h3 class="text-xl font-bold mb-2" data-en="Non-Manifold Mesh Failures" data-bg="Грешки при некоректни мрежи">Non-Manifold Mesh Failures</h3>
-                    <p class="text-stone-600" data-en="Most software outright rejects standard 3D meshes downloaded from the internet. Amateurs do not know how to fix non-manifold geometry, halting production before it starts." data-bg="Повечето софтуер отказва да работи със стандартни 3D модели от интернет. Любителите не знаят как да коригират некоректната геометрия и производството спира, преди да е започнало.">
-                        Most software outright rejects standard 3D meshes downloaded from the internet. Amateurs do not know how to fix non-manifold geometry, halting production before it starts.
-                    </p>
-                </div>
-                <div class="bg-stone-50 p-8 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition text-center md:text-left">
-                    <i class="fa-solid fa-sack-dollar text-4xl text-amber-500 mb-4 block"></i>
-                    <h3 class="text-xl font-bold mb-2" data-en="High Cost of Iteration" data-bg="Висока цена за всяка итерация">High Cost of Iteration</h3>
-                    <p class="text-stone-600" data-en="Hiring engineers to convert messy files into proper CAD formats for tooling costs thousands of dollars and weeks of time, killing startup momentum." data-bg="Наемането на инженери за конвертиране на некоректни файлове в правилни CAD формати струва хиляди долари и седмици време, което убива инерцията на стартъпите.">
-                        Hiring engineers to convert messy files into proper CAD formats for tooling costs thousands of dollars and weeks of time, killing startup momentum.
-                    </p>
-                </div>
-                <div class="bg-stone-50 p-8 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition text-center md:text-left">
-                    <i class="fa-solid fa-puzzle-piece text-4xl text-orange-500 mb-4 block"></i>
-                    <h3 class="text-xl font-bold mb-2" data-en="Fragmented Tooling" data-bg="Разпокъсани инструменти">Fragmented Tooling</h3>
-                    <p class="text-stone-600" data-en="Different software is needed for open tray molds versus two-part injection molds. Users are forced to learn multiple complex environments." data-bg="За отворени калъпи е нужен различен софтуер спрямо двучастните. Потребителите са принудени да усвояват множество сложни среди.">
-                        Different software is needed for open tray molds versus two-part injection molds. Users are forced to learn multiple complex environments.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
+<section id="solution" class="py-20 bg-stone-50">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="text-center mb-12">
+<h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="Our Universal Mold Engine" data-bg="Нашият универсален софтуер за калъпи">Our Universal Mold Engine</h2>
+<p class="text-lg text-stone-600 max-w-3xl mx-auto" data-en="We bridge the gap between amateur downloads and professional industry standards. Whether you have a flawless .STEP file or a broken mesh, our cloud software generates production-ready molds." data-bg="Свързваме любителските файлове с професионалните индустриални стандарти. Без значение дали имате перфектен .STEP файл или повреден модел — нашият облачен софтуер генерира калъпи, готови за производство.">We bridge the gap between amateur downloads and professional industry standards. Whether you have a flawless .STEP file or a broken mesh, our cloud software generates production-ready molds.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+<div class="flex items-start"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mt-0.5"><i class="fa-solid fa-check text-sm"></i></div><div class="ml-3"><h4 class="text-lg font-bold" data-en="Auto-Healing Mesh Engine" data-bg="Автоматично поправяне на модели">Auto-Healing Mesh Engine</h4><p class="text-stone-500" data-en="Automatically repairs non-manifold edges and holes in standard 3D meshes." data-bg="Автоматично поправя ръбове и дупки в стандартни 3D модели.">Automatically repairs non-manifold edges and holes in standard 3D meshes.</p></div></div>
+<div class="flex items-start"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mt-0.5"><i class="fa-solid fa-check text-sm"></i></div><div class="ml-3"><h4 class="text-lg font-bold" data-en="Professional .STEP Import/Export" data-bg="Професионален .STEP импорт/експорт">Professional .STEP Import/Export</h4><p class="text-stone-500" data-en="Supports native CAD formats to guarantee precision tooling for metal mold manufacturing." data-bg="Поддържа CAD формати за прецизна изработка на метални калъпи.">Supports native CAD formats to guarantee precision tooling for metal mold manufacturing.</p></div></div>
+<div class="flex items-start"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mt-0.5"><i class="fa-solid fa-check text-sm"></i></div><div class="ml-3"><h4 class="text-lg font-bold" data-en="Dual Output Modes" data-bg="Два вида калъпи наведнъж">Dual Output Modes</h4><p class="text-stone-500" data-en="Instantly generate either two-part molds for injection molding or open tray molds for casting." data-bg="Моментално генерирайте двукомпонентни калъпи за шприцоване или отворени калъпи за отливане.">Instantly generate either two-part molds for injection molding or open tray molds for casting.</p></div></div>
+</div></div></section>
 
-    <!-- SOLUTION -->
-    <section id="solution" class="py-20 bg-stone-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row gap-12 items-center">
-                <div class="w-full md:w-1/2">
-                    <h2 class="text-3xl md:text-4xl font-bold mb-6" data-en="Our Universal Mold Engine" data-bg="Нашият универсален софтуер за калъпи">Our Universal Mold Engine</h2>
-                    <p class="text-lg text-stone-600 mb-6" data-en="We bridge the gap between amateur downloads and professional industry standards. Whether you have a flawless .STEP file or a broken mesh, our cloud software generates production-ready molds." data-bg="Преодоляваме пропастта между любителските файлове и професионалните стандарти. Независимо дали имате перфектен .STEP файл или дефектна мрежа, нашият облачен софтуер генерира калъпи, готови за производство.">
-                        We bridge the gap between amateur downloads and professional industry standards. Whether you have a flawless .STEP file or a broken mesh, our cloud software generates production-ready molds.
-                    </p>
-                    <div class="space-y-4">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mt-1"><i class="fa-solid fa-check text-sm"></i></div>
-                            <div class="ml-3">
-                                <h4 class="text-lg font-bold" data-en="Auto-Healing Mesh Engine" data-bg="Автоматична поправка на мрежи">Auto-Healing Mesh Engine</h4>
-                                <p class="text-stone-500" data-en="Automatically repairs non-manifold edges and holes in standard 3D meshes." data-bg="Автоматично поправя некоректни ръбове и дупки в стандартни 3D мрежи.">Automatically repairs non-manifold edges and holes in standard 3D meshes.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mt-1"><i class="fa-solid fa-check text-sm"></i></div>
-                            <div class="ml-3">
-                                <h4 class="text-lg font-bold" data-en="Professional .STEP Import/Export" data-bg="Професионален .STEP импорт/експорт">Professional .STEP Import/Export</h4>
-                                <p class="text-stone-500" data-en="Supports native CAD formats to guarantee precision tooling for metal mold manufacturing." data-bg="Поддържа стандартни CAD формати за гарантирана прецизност при CNC обработка на метални калъпи.">Supports native CAD formats to guarantee precision tooling for metal mold manufacturing.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mt-1"><i class="fa-solid fa-check text-sm"></i></div>
-                            <div class="ml-3">
-                                <h4 class="text-lg font-bold" data-en="Dual Output Modes" data-bg="Два режима на генериране">Dual Output Modes</h4>
-                                <p class="text-stone-500" data-en="Instantly generate either two-part molds for injection molding or open tray molds for casting." data-bg="Мигновено генерирайте двучастни калъпи за шприцване или отворени калъпи за отливане.">Instantly generate either two-part molds for injection molding or open tray molds for casting.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="w-full md:w-1/2 text-center">
-                    <p class="text-stone-400 text-sm mb-2" data-en="&darr; Scroll down for interactive 3D mold explode view" data-bg="&darr; Превъртете надолу за интерактивен 3D изглед на калъпа">&darr; Scroll down for interactive 3D mold explode view</p>
-                    <a href="#mold-3d-section" class="inline-flex items-center px-6 py-3 bg-stone-800 text-white rounded-lg font-bold hover:bg-teal-600 transition">
-                        <i class="fa-solid fa-cube mr-2"></i>
-                        <span data-en="See 3D Mold Preview" data-bg="Виж 3D преглед на калъпа">See 3D Mold Preview</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
+<section id="mold-3d-section">
+<div id="mold-3d-sticky">
+<div id="mold-canvas-wrap"></div>
+<div class="mold-scroll-hint" id="scroll-hint"><i class="fa-solid fa-chevron-down block text-xl mb-1"></i><span data-en="Scroll to reveal the mold" data-bg="Скролвай, за да видиш калъпа">Scroll to reveal the mold</span></div>
+<div style="position:absolute;top:40px;left:50%;transform:translateX(-50%);z-index:10;text-align:center;pointer-events:none">
+<div class="inline-flex items-center bg-white/10 backdrop-blur-sm px-5 py-2 rounded-full text-white font-bold text-sm border border-white/10"><i class="fa-solid fa-layer-group mr-2 text-teal-400"></i><span data-en="Interactive 2-Part Mold Preview" data-bg="Интерактивен преглед на двукомпонентен калъп">Interactive 2-Part Mold Preview</span></div>
+</div></div></section>
 
-    <!-- 3D SCROLL EXPLODE SECTION -->
-    <section id="mold-3d-section">
-        <div id="mold-3d-canvas-wrap">
-            <div id="3d-preview-container" style="width:100%;height:100%;"></div>
-            <div id="mold-3d-overlay">
-                <div class="inline-flex items-center bg-white/90 backdrop-blur-sm px-5 py-2.5 rounded-full shadow-lg font-bold text-teal-600 border border-teal-200 text-sm">
-                    <i class="fa-solid fa-layer-group mr-2"></i>
-                    <span id="mold-3d-label" data-en="Scroll to explode the mold" data-bg="Превъртете, за да разглобите калъпа">Scroll to explode the mold</span>
-                </div>
-            </div>
-        </div>
-    </section>
+<section id="mold-types" class="py-20 bg-teal-900 text-stone-100 border-y border-teal-800">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="text-center mb-16">
+<h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="Output Engineered for Every Need" data-bg="Резултати, проектирани за всяка нужда">Output Engineered for Every Need</h2>
+<p class="text-lg text-teal-200 max-w-3xl mx-auto" data-en="Generate the exact mold type required for your manufacturing process, from hobbyist desktop printing to industrial tooling." data-bg="Генерирайте точния тип калъп за вашия производствен процес — от любителско 3D принтиране до индустриална обработка.">Generate the exact mold type required for your manufacturing process, from hobbyist desktop printing to industrial tooling.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+<div class="bg-teal-800 p-8 rounded-xl border border-teal-700 shadow-md hover:-translate-y-1 transition duration-300"><i class="fa-solid fa-layer-group text-4xl text-teal-300 mb-4 block"></i><h3 class="text-2xl font-bold mb-3" data-en="Two-Part Molds" data-bg="Двукомпонентни калъпи">Two-Part Molds</h3><p class="text-teal-100" data-en="Perfect for injection molding or complex resin casting. Automatically generates core, cavity, alignment pins, and pour holes." data-bg="Идеални за шприцоване или сложно отливане. Автоматично генерира ядро, кухина, водещи щифтове и отвори за пълнене.">Perfect for injection molding or complex resin casting. Automatically generates core, cavity, alignment pins, and pour holes.</p></div>
+<div class="bg-teal-800 p-8 rounded-xl border border-teal-700 shadow-md hover:-translate-y-1 transition duration-300"><i class="fa-regular fa-square text-4xl text-teal-300 mb-4 block"></i><h3 class="text-2xl font-bold mb-3" data-en="Open Tray Molds" data-bg="Отворени калъпи">Open Tray Molds</h3><p class="text-teal-100" data-en="Ideal for simple shapes, soap, concrete, or silicone casting. Creates a flat-backed open block for easy pouring and quick demolding." data-bg="Идеални за прости форми, сапун, бетон или силикон. Създава отворен блок с плоско дъно за лесно наливане и бързо изваждане.">Ideal for simple shapes, soap, concrete, or silicone casting. Creates a flat-backed open block for easy pouring and quick demolding.</p></div>
+<div class="bg-teal-800 p-8 rounded-xl border border-teal-700 shadow-md hover:-translate-y-1 transition duration-300 relative overflow-hidden"><div class="absolute top-0 right-0 bg-teal-500 text-xs font-bold px-3 py-1 rounded-bl-lg text-white" data-en="Hobbyist Friendly!" data-bg="За любители!">Hobbyist Friendly!</div><i class="fa-solid fa-print text-4xl text-teal-300 mb-4 block"></i><h3 class="text-2xl font-bold mb-3" data-en="3D Printing Ready" data-bg="Готови за 3D принтиране">3D Printing Ready</h3><p class="text-teal-100" data-en="Export optimized mesh files ready to be sent directly to your FDM or Resin 3D printer. No expensive CNC machining needed to start making physical molds." data-bg="Експортирайте оптимизирани файлове, готови за директно изпращане към вашия FDM или Resin 3D принтер. Не е нужна скъпа CNC машина, за да започнете.">Export optimized mesh files ready to be sent directly to your FDM or Resin 3D printer. No expensive CNC machining needed to start making physical molds.</p></div>
+</div></div></section>
 
-    <!-- MOLD TYPES -->
-    <section id="mold-types" class="py-20 bg-teal-900 text-stone-100 border-y border-teal-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="Output Engineered for Every Need" data-bg="Резултат, проектиран за всяка нужда">Output Engineered for Every Need</h2>
-                <p class="text-lg text-teal-200 max-w-3xl mx-auto" data-en="Generate the exact mold type required for your manufacturing process, from hobbyist desktop printing to industrial tooling." data-bg="Генерирайте точния вид калъп за вашия производствен процес — от любителско принтиране до индустриални инструменти.">Generate the exact mold type required for your manufacturing process, from hobbyist desktop printing to industrial tooling.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-                <div class="bg-teal-800 p-8 rounded-xl border border-teal-700 shadow-md transform hover:-translate-y-1 transition duration-300">
-                    <i class="fa-solid fa-layer-group text-4xl text-teal-300 mb-4 block"></i>
-                    <h3 class="text-2xl font-bold mb-3" data-en="Two-Part Molds" data-bg="Двучастни калъпи">Two-Part Molds</h3>
-                    <p class="text-teal-100" data-en="Perfect for injection molding or complex resin casting. Automatically generates core, cavity, alignment pins, and pour holes." data-bg="Идеални за шприцване или сложно отливане на смола. Автоматично генерира ядро, кухина, направляващи щифтове и отвори за наливане.">Perfect for injection molding or complex resin casting. Automatically generates core, cavity, alignment pins, and pour holes.</p>
-                </div>
-                <div class="bg-teal-800 p-8 rounded-xl border border-teal-700 shadow-md transform hover:-translate-y-1 transition duration-300">
-                    <i class="fa-regular fa-square text-4xl text-teal-300 mb-4 block"></i>
-                    <h3 class="text-2xl font-bold mb-3" data-en="Open Tray Molds" data-bg="Отворени калъпи">Open Tray Molds</h3>
-                    <p class="text-teal-100" data-en="Ideal for simple shapes, soap, concrete, or silicone casting. Creates a flat-backed open block for easy pouring and quick demolding." data-bg="Идеални за прости форми, сапун, бетон или силикон. Създава отворен блок с плоско дъно за лесно наливане и бързо изваждане.">Ideal for simple shapes, soap, concrete, or silicone casting. Creates a flat-backed open block for easy pouring and quick demolding.</p>
-                </div>
-                <div class="bg-teal-800 p-8 rounded-xl border border-teal-700 shadow-md transform hover:-translate-y-1 transition duration-300 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-teal-500 text-xs font-bold px-3 py-1 rounded-bl-lg text-white" data-en="Hobbyist Friendly!" data-bg="За любители!">Hobbyist Friendly!</div>
-                    <i class="fa-solid fa-print text-4xl text-teal-300 mb-4 block"></i>
-                    <h3 class="text-2xl font-bold mb-3" data-en="3D Printing Ready" data-bg="Готово за 3D печат">3D Printing Ready</h3>
-                    <p class="text-teal-100" data-en="Export optimized mesh files ready to be sent directly to your FDM or Resin 3D printer. No expensive CNC machining needed to start making physical molds." data-bg="Експортирайте оптимизирани файлове, готови за директно изпращане към FDM или Resin 3D принтер. Не е необходима скъпа CNC машина, за да започнете.">Export optimized mesh files ready to be sent directly to your FDM or Resin 3D printer. No expensive CNC machining needed to start making physical molds.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+<section id="market" class="py-20 bg-white">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="text-center mb-16">
+<h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="Competitive Analysis" data-bg="Анализ на конкуренцията">Competitive Analysis</h2>
+<p class="text-lg text-stone-500 max-w-3xl mx-auto" data-en="How MoldMaster disrupts the traditional barriers of the tooling industry." data-bg="Как MoldMaster преодолява традиционните бариери в индустрията.">How MoldMaster disrupts the traditional barriers of the tooling industry.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+<div class="bg-stone-50 border border-stone-200 p-8 rounded-xl shadow-sm"><div class="flex items-center mb-4"><i class="fa-solid fa-cubes-stacked text-2xl text-teal-600 mr-3"></i><h3 class="text-xl font-bold" data-en="Product Offerings" data-bg="Продуктова гама">Product Offerings</h3></div><p class="text-stone-600 text-sm leading-relaxed" data-en="MoldMaster offers a diverse range of products, catering to various customer needs—from digital file generation to full physical production. We have a strong portfolio of innovative dual-output solutions (open &amp; 2-part) that differentiate us from single-purpose competitors." data-bg="MoldMaster предлага широка гама продукти — от генериране на файлове до цялостно физическо производство. Нашето портфолио от иновативни решения за двата типа калъпи ни отличава от конкурентите с ограничена функционалност.">MoldMaster offers a diverse range of products, catering to various customer needs—from digital file generation to full physical production. We have a strong portfolio of innovative dual-output solutions (open &amp; 2-part) that differentiate us from single-purpose competitors.</p></div>
+<div class="bg-stone-50 border border-stone-200 p-8 rounded-xl shadow-sm"><div class="flex items-center mb-4"><i class="fa-solid fa-chart-pie text-2xl text-teal-600 mr-3"></i><h3 class="text-xl font-bold" data-en="Market Share" data-bg="Пазарен дял">Market Share</h3></div><p class="text-stone-600 text-sm leading-relaxed" data-en="MoldMaster is rapidly capturing a significant market share in the 'missing middle' of the industry. By serving the massive base of hobbyists and agile startups ignored by enterprise software, we have successfully captured a loyal customer base and continue to expand our reach." data-bg="MoldMaster бързо завладява значителен пазарен дял в „празната ниша" на индустрията. Обслужвайки огромната база от любители и гъвкави стартъпи, пренебрегвани от корпоративния софтуер, изградихме лоялна клиентска база, която продължава да расте.">MoldMaster is rapidly capturing a significant market share in the 'missing middle' of the industry.</p></div>
+<div class="bg-stone-50 border border-stone-200 p-8 rounded-xl shadow-sm"><div class="flex items-center mb-4"><i class="fa-solid fa-bolt text-2xl text-teal-600 mr-3"></i><h3 class="text-xl font-bold" data-en="Competitive Advantage" data-bg="Конкурентно предимство">Competitive Advantage</h3></div><p class="text-stone-600 text-sm leading-relaxed" data-en="MoldMaster's competitive advantage lies in our advanced cloud technology and proprietary auto-healing algorithms. Our strong research and development team constantly innovates, allowing users to bypass hours of manual CAD repairs and stay ahead of the competition." data-bg="Конкурентното ни предимство е в нашата облачна технология и патентовани алгоритми за автоматична корекция. Потребителите спестяват часове ръчна работа в CAD програми и изпреварват конкуренцията.">MoldMaster's competitive advantage lies in our advanced cloud technology and proprietary auto-healing algorithms.</p></div>
+</div>
+<div class="border-t border-stone-200 pt-16 mb-8 text-center"><h3 class="text-2xl font-bold mb-4" data-en="The Industry Landscape" data-bg="Индустриалният пейзаж">The Industry Landscape</h3></div>
+<div class="flex flex-col lg:flex-row items-center gap-12">
+<div class="w-full lg:w-1/2"><div class="chart-container"><canvas id="competitorChart"></canvas></div></div>
+<div class="w-full lg:w-1/2 space-y-4">
+<div class="p-5 rounded-xl border border-teal-200 bg-teal-50 shadow-sm"><h3 class="font-bold text-lg text-teal-800 mb-1">MoldMaster</h3><p class="text-teal-900 text-sm" data-en="Provides the actual digital file (.STEP or Mesh) instantly. Balances professional output with cloud-based auto-healing for amateur meshes." data-bg="Предоставя готовия файл (.STEP или Mesh) моментално. Съчетава професионален резултат с облачна автокорекция за любителски модели.">Provides the actual digital file (.STEP or Mesh) instantly. Balances professional output with cloud-based auto-healing for amateur meshes.</p></div>
+<div class="p-5 rounded-xl border border-stone-200 bg-white"><div class="flex justify-between items-center mb-1"><h3 class="font-bold text-lg" data-en="Basic Online Generators" data-bg="Базови онлайн генератори">Basic Online Generators</h3><span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded border border-stone-200">e.g. ActionBox</span></div><p class="text-stone-600 text-sm" data-en="Good for basic open-tray forms, but often fails on complex or non-manifold meshes. Lacks professional .STEP export and advanced 2-part generation." data-bg="Добри за прости отворени калъпи, но често се провалят при сложни модели. Нямат .STEP експорт и генериране на двукомпонентни калъпи.">Good for basic open-tray forms, but often fails on complex or non-manifold meshes.</p></div>
+<div class="p-5 rounded-xl border border-stone-200 bg-white"><div class="flex justify-between items-center mb-1"><h3 class="font-bold text-lg" data-en="Cloud Manufacturing Lock-ins" data-bg="Облачни производители с обвързване">Cloud Manufacturing Lock-ins</h3><span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded border border-stone-200">e.g. Protolabs, Xometry</span></div><p class="text-stone-600 text-sm" data-en="They generate excellent mold tooling designs internally, but refuse to sell you the digital file. You are locked into buying physical parts at their markup." data-bg="Създават отлични калъпи вътрешно, но не продават цифровия файл. Принудени сте да купувате готови части от тях на завишени цени.">They generate excellent mold tooling designs internally, but refuse to sell you the digital file.</p></div>
+<div class="p-5 rounded-xl border border-stone-200 bg-white"><div class="flex justify-between items-center mb-1"><h3 class="font-bold text-lg" data-en="Enterprise Desktop CAD" data-bg="Корпоративен CAD софтуер">Enterprise Desktop CAD</h3><span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded border border-stone-200">e.g. SolidWorks</span></div><p class="text-stone-600 text-sm" data-en="Professional standard, but requires expensive licenses, heavy local installations, and hundreds of hours of training to manually repair broken meshes." data-bg="Професионален стандарт, но изисква скъпи лицензи, тежки инсталации и стотици часове обучение за ръчна поправка на повредени модели.">Professional standard, but requires expensive licenses, heavy local installations, and hundreds of hours of training.</p></div>
+</div></div></div></section>
 
-    <!-- MARKET -->
-    <section id="market" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="Competitive Analysis" data-bg="Анализ на конкуренцията">Competitive Analysis</h2>
-                <p class="text-lg text-stone-500 max-w-3xl mx-auto" data-en="How MoldMaster disrupts the traditional barriers of the tooling industry." data-bg="Как MoldMaster преодолява традиционните бариери в индустрията.">How MoldMaster disrupts the traditional barriers of the tooling industry.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-                <div class="bg-stone-50 border border-stone-200 p-8 rounded-xl shadow-sm">
-                    <div class="flex items-center mb-4"><i class="fa-solid fa-cubes-stacked text-2xl text-teal-600 mr-3"></i><h3 class="text-xl font-bold text-stone-800" data-en="Product Offerings" data-bg="Предлагани продукти">Product Offerings</h3></div>
-                    <p class="text-stone-600 text-sm leading-relaxed" data-en="MoldMaster offers a diverse range of products, catering to various customer needs—from digital file generation to full physical production. We have a strong portfolio of innovative dual-output solutions (open & 2-part) that differentiate us from single-purpose competitors." data-bg="MoldMaster предлага разнообразна гама от продукти за различни нужди — от генериране на цифрови файлове до пълно физическо производство. Разполагаме с иновативни решения с двоен изход (отворени и двучастни калъпи), които ни отличават от едноцелевите конкуренти.">MoldMaster offers a diverse range of products, catering to various customer needs—from digital file generation to full physical production. We have a strong portfolio of innovative dual-output solutions (open & 2-part) that differentiate us from single-purpose competitors.</p>
-                </div>
-                <div class="bg-stone-50 border border-stone-200 p-8 rounded-xl shadow-sm">
-                    <div class="flex items-center mb-4"><i class="fa-solid fa-chart-pie text-2xl text-teal-600 mr-3"></i><h3 class="text-xl font-bold text-stone-800" data-en="Market Share" data-bg="Пазарен дял">Market Share</h3></div>
-                    <p class="text-stone-600 text-sm leading-relaxed" data-en="MoldMaster is rapidly capturing a significant market share in the 'missing middle' of the industry. By serving the massive base of hobbyists and agile startups ignored by enterprise software, we have successfully captured a loyal customer base and continue to expand our reach." data-bg="MoldMaster бързо завоюва значителен пазарен дял в „липсващата среда" на индустрията. Обслужвайки огромната база от любители и гъвкави стартъпи, пренебрегвани от корпоративния софтуер, успешно изградихме лоялна клиентска база и продължаваме да разширяваме обхвата си.">MoldMaster is rapidly capturing a significant market share in the 'missing middle' of the industry. By serving the massive base of hobbyists and agile startups ignored by enterprise software, we have successfully captured a loyal customer base and continue to expand our reach.</p>
-                </div>
-                <div class="bg-stone-50 border border-stone-200 p-8 rounded-xl shadow-sm">
-                    <div class="flex items-center mb-4"><i class="fa-solid fa-bolt text-2xl text-teal-600 mr-3"></i><h3 class="text-xl font-bold text-stone-800" data-en="Competitive Advantage" data-bg="Конкурентно предимство">Competitive Advantage</h3></div>
-                    <p class="text-stone-600 text-sm leading-relaxed" data-en="MoldMaster's competitive advantage lies in our advanced cloud technology and proprietary auto-healing algorithms. Our strong research and development team constantly innovates, allowing users to bypass hours of manual CAD repairs and stay ahead of the competition." data-bg="Конкурентното предимство на MoldMaster се крие в нашата облачна технология и собствени алгоритми за автоматична поправка. Силният ни екип за разработка непрекъснато внедрява нови решения, които спестяват часове ръчна работа в CAD.">MoldMaster's competitive advantage lies in our advanced cloud technology and proprietary auto-healing algorithms. Our strong research and development team constantly innovates, allowing users to bypass hours of manual CAD repairs and stay ahead of the competition.</p>
-                </div>
-            </div>
-            <div class="border-t border-stone-200 pt-16 mb-8 text-center">
-                <h3 class="text-2xl font-bold mb-4" data-en="The Industry Landscape" data-bg="Индустриалният пейзаж">The Industry Landscape</h3>
-            </div>
-            <div class="flex flex-col lg:flex-row items-center gap-12">
-                <div class="w-full lg:w-1/2"><div class="chart-container"><canvas id="competitorChart"></canvas></div></div>
-                <div class="w-full lg:w-1/2 space-y-4">
-                    <div class="p-5 rounded-xl border border-teal-200 bg-teal-50 shadow-sm">
-                        <h3 class="font-bold text-lg text-teal-800 mb-1">MoldMaster</h3>
-                        <p class="text-teal-900 text-sm leading-snug" data-en="Provides the actual digital file (.STEP or Mesh) instantly. Balances professional output with cloud-based auto-healing for amateur meshes." data-bg="Предоставя реалния цифров файл (.STEP или Mesh) мигновено. Съчетава професионален резултат с облачна автоматична поправка за любителски мрежи.">Provides the actual digital file (.STEP or Mesh) instantly. Balances professional output with cloud-based auto-healing for amateur meshes.</p>
-                    </div>
-                    <div class="p-5 rounded-xl border border-stone-200 bg-white">
-                        <div class="flex justify-between items-center mb-1"><h3 class="font-bold text-lg text-stone-800" data-en="Basic Online Generators" data-bg="Базови онлайн генератори">Basic Online Generators</h3><span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded border border-stone-200">e.g. ActionBox</span></div>
-                        <p class="text-stone-600 text-sm leading-snug" data-en="Good for basic open-tray forms, but often fails on complex or non-manifold meshes. Lacks professional .STEP export and advanced 2-part generation." data-bg="Подходящи за базови отворени форми, но често се провалят при сложни или некоректни мрежи. Нямат професионален .STEP експорт и генериране на двучастни калъпи.">Good for basic open-tray forms, but often fails on complex or non-manifold meshes. Lacks professional .STEP export and advanced 2-part generation.</p>
-                    </div>
-                    <div class="p-5 rounded-xl border border-stone-200 bg-white">
-                        <div class="flex justify-between items-center mb-1"><h3 class="font-bold text-lg text-stone-800" data-en="Cloud Manufacturing Lock-ins" data-bg="Облачни производители с обвързване">Cloud Manufacturing Lock-ins</h3><span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded border border-stone-200">e.g. Protolabs, Xometry</span></div>
-                        <p class="text-stone-600 text-sm leading-snug" data-en="They generate excellent mold tooling designs internally, but refuse to sell you the digital file. You are locked into buying physical parts at their markup." data-bg="Генерират отлични дизайни на калъпи вътрешно, но отказват да ви продадат цифровия файл. Обвързани сте да купувате физически части с тяхната надценка.">They generate excellent mold tooling designs internally, but refuse to sell you the digital file. You are locked into buying physical parts at their markup.</p>
-                    </div>
-                    <div class="p-5 rounded-xl border border-stone-200 bg-white">
-                        <div class="flex justify-between items-center mb-1"><h3 class="font-bold text-lg text-stone-800" data-en="Enterprise Desktop CAD" data-bg="Корпоративен настолен CAD">Enterprise Desktop CAD</h3><span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded border border-stone-200">e.g. SolidWorks</span></div>
-                        <p class="text-stone-600 text-sm leading-snug" data-en="Professional standard, but requires expensive licenses, heavy local installations, and hundreds of hours of training to manually repair broken meshes." data-bg="Професионален стандарт, но изисква скъпи лицензи, тежки локални инсталации и стотици часове обучение за ръчна поправка на дефектни мрежи.">Professional standard, but requires expensive licenses, heavy local installations, and hundreds of hours of training to manually repair broken meshes.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<section id="business" class="py-20 bg-stone-100 border-t border-stone-200">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="text-center mb-16">
+<h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="Flexible Business Model" data-bg="Гъвкав бизнес модел">Flexible Business Model</h2>
+<p class="text-lg text-stone-500 max-w-3xl mx-auto" data-en="We capture value across the entire spectrum—from the weekend hobbyist generating a single mold to the enterprise hardware startup iterating daily." data-bg="Създаваме стойност за всички — от любителя, който прави единичен калъп, до хардуерния стартъп с ежедневни итерации.">We capture value across the entire spectrum—from the weekend hobbyist generating a single mold to the enterprise hardware startup iterating daily.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 max-w-6xl mx-auto">
+<div class="bg-white rounded-2xl shadow-lg border border-stone-200 overflow-hidden hover:-translate-y-1 transition duration-300"><div class="p-8">
+<h3 class="text-2xl font-bold mb-2" data-en="Digital Download" data-bg="Цифров файл">Digital Download</h3>
+<p class="text-stone-500 mb-6" data-en="For DIY printing and local machining." data-bg="За самостоятелно принтиране и обработка.">For DIY printing and local machining.</p>
+<div class="text-4xl font-extrabold mb-6">$9.99<span class="text-lg font-normal text-stone-500" data-en=" /export" data-bg=" /експорт"> /export</span></div>
+<ul class="space-y-3 text-stone-700"><li class="flex items-center"><i class="fa-solid fa-download text-teal-600 mr-3 w-4"></i><span data-en="Download .STEP &amp; Mesh" data-bg="Изтегляне на .STEP и Mesh">Download .STEP &amp; Mesh</span></li><li class="flex items-center"><i class="fa-solid fa-wrench text-teal-600 mr-3 w-4"></i><span data-en="Auto Mesh Repair" data-bg="Автоматична корекция">Auto Mesh Repair</span></li><li class="flex items-center"><i class="fa-solid fa-layer-group text-teal-600 mr-3 w-4"></i><span data-en="Open Tray or 2-Part" data-bg="Отворен или двукомпонентен">Open Tray or 2-Part</span></li></ul>
+</div></div>
+<div class="bg-teal-50 rounded-2xl shadow-lg border border-teal-200 overflow-hidden hover:-translate-y-1 transition duration-300 relative"><div class="absolute top-0 right-0 bg-teal-200 text-teal-800 text-xs font-bold px-3 py-1 rounded-bl-lg" data-en="Turnkey Solution" data-bg="Цялостно решение">Turnkey Solution</div><div class="p-8">
+<h3 class="text-2xl font-bold mb-2 text-teal-900" data-en="Physical Production" data-bg="Физическо производство">Physical Production</h3>
+<p class="text-teal-700 mb-6" data-en="We manufacture the mold for you." data-bg="Ние изработваме калъпа вместо вас.">We manufacture the mold for you.</p>
+<div class="text-4xl font-extrabold mb-2 text-teal-900"><span class="text-xl font-bold" data-en="from " data-bg="от ">from </span>$49<span class="text-lg font-normal text-teal-700" data-en=" /mold" data-bg=" /калъп"> /mold</span></div>
+<div class="text-sm font-bold text-teal-600 mb-6" data-en="(20% off for Pro users)" data-bg="(20% отстъпка за Pro потребители)">(20% off for Pro users)</div>
+<ul class="space-y-3 text-teal-900"><li class="flex items-center"><i class="fa-solid fa-file-zipper text-teal-600 mr-3 w-4"></i><span data-en="Digital Files Included" data-bg="Включени цифрови файлове">Digital Files Included</span></li><li class="flex items-center"><i class="fa-solid fa-industry text-teal-600 mr-3 w-4"></i><span data-en="3D Printed or CNC Machined" data-bg="3D принтиране или CNC обработка">3D Printed or CNC Machined</span></li><li class="flex items-center"><i class="fa-solid fa-boxes-stacked text-teal-600 mr-3 w-4"></i><span data-en="Various Material Options" data-bg="Разнообразие от материали">Various Material Options</span></li><li class="flex items-center"><i class="fa-solid fa-truck-fast text-teal-600 mr-3 w-4"></i><span data-en="Shipped to Your Door" data-bg="Доставка до вратата ви">Shipped to Your Door</span></li></ul>
+</div></div>
+<div class="bg-teal-700 rounded-2xl shadow-xl overflow-hidden hover:-translate-y-1 transition duration-300 relative text-white"><div class="absolute top-0 right-0 bg-teal-500 text-xs font-bold px-3 py-1 rounded-bl-lg" data-en="For Teams" data-bg="За екипи">For Teams</div><div class="p-8">
+<h3 class="text-2xl font-bold mb-2" data-en="Pro Subscription" data-bg="Pro абонамент">Pro Subscription</h3>
+<p class="text-teal-200 mb-6" data-en="For startups and prototyping labs." data-bg="За стартъпи и лаборатории за прототипи.">For startups and prototyping labs.</p>
+<div class="text-4xl font-extrabold mb-6">$99<span class="text-lg font-normal text-teal-200" data-en=" /month" data-bg=" /месец"> /month</span></div>
+<ul class="space-y-3"><li class="flex items-center"><i class="fa-solid fa-infinity text-teal-300 mr-3 w-4"></i><span data-en="Unlimited Mold Exports" data-bg="Неограничен брой експорти">Unlimited Mold Exports</span></li><li class="flex items-center"><i class="fa-solid fa-star text-teal-300 mr-3 w-4"></i><span data-en="Professional .STEP Output" data-bg="Професионален .STEP изход">Professional .STEP Output</span></li><li class="flex items-center"><i class="fa-solid fa-magnifying-glass-plus text-teal-300 mr-3 w-4"></i><span data-en="High-Res Complex Geometry" data-bg="Сложна геометрия с висока детайлност">High-Res Complex Geometry</span></li><li class="flex items-center"><i class="fa-solid fa-clock-rotate-left text-teal-300 mr-3 w-4"></i><span data-en="Priority Processing" data-bg="Приоритетна обработка">Priority Processing</span></li><li class="flex items-center"><i class="fa-solid fa-tags text-teal-300 mr-3 w-4"></i><span data-en="20% Off Manufactured Parts" data-bg="20% отстъпка за произведени части">20% Off Manufactured Parts</span></li></ul>
+</div></div></div>
+<div class="bg-white p-8 rounded-2xl shadow-sm border border-stone-200">
+<h3 class="text-xl font-bold text-center mb-4" data-en="Projected Revenue Growth Mix" data-bg="Прогноза за ръст на приходите">Projected Revenue Growth Mix</h3>
+<div class="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-6 text-sm font-semibold">
+<div class="text-teal-800 bg-teal-100 px-4 py-1.5 rounded-full"><span data-en="Year 3 Target: ~6,000 Active Pro Users" data-bg="Цел за 3-та година: ~6 000 активни Pro потребители">Year 3 Target: ~6,000 Active Pro Users</span></div>
+<div class="text-stone-700 bg-stone-100 border border-stone-200 px-4 py-1.5 rounded-full"><span data-en="~8,000 Individual Exports / Month" data-bg="~8 000 индивидуални експорта месечно">~8,000 Individual Exports / Month</span></div>
+</div>
+<div class="chart-container" style="max-width:800px;height:350px"><canvas id="revenueChart"></canvas></div>
+<p class="text-center text-sm text-stone-500 mt-6 max-w-3xl mx-auto" data-en="Subscriptions provide predictable MRR while Digital &amp; Physical Sales act as an acquisition funnel. Projections are based on scaling from 20 initial beta users to our Year 3 targets." data-bg="Абонаментите осигуряват предвидим месечен приход (MRR), а продажбите на файлове и физически калъпи служат за привличане на нови клиенти. Прогнозата е базирана на растеж от 20 бета потребители до целите за 3-та година.">Subscriptions provide predictable MRR while Digital &amp; Physical Sales act as an acquisition funnel.</p>
+</div></div></section>
 
-    <!-- BUSINESS -->
-    <section id="business" class="py-20 bg-stone-100 border-t border-stone-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4" data-en="Flexible Business Model" data-bg="Гъвкав бизнес модел">Flexible Business Model</h2>
-                <p class="text-lg text-stone-500 max-w-3xl mx-auto" data-en="We capture value across the entire spectrum—from the weekend hobbyist generating a single mold to the enterprise hardware startup iterating daily." data-bg="Създаваме стойност за всички — от любителя, който генерира един калъп през уикенда, до хардуерния стартъп с ежедневни итерации.">We capture value across the entire spectrum—from the weekend hobbyist generating a single mold to the enterprise hardware startup iterating daily.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 max-w-6xl mx-auto">
-                <div class="bg-white rounded-2xl shadow-lg border border-stone-200 overflow-hidden transform hover:-translate-y-1 transition duration-300">
-                    <div class="p-8">
-                        <h3 class="text-2xl font-bold mb-2" data-en="Digital Download" data-bg="Цифров файл">Digital Download</h3>
-                        <p class="text-stone-500 mb-6" data-en="For DIY printing and local machining." data-bg="За самостоятелен печат и локална обработка.">For DIY printing and local machining.</p>
-                        <div class="text-4xl font-extrabold mb-6">$9.99<span class="text-lg font-normal text-stone-500" data-en=" /export" data-bg=" /експорт"> /export</span></div>
-                        <ul class="space-y-3 text-stone-700">
-                            <li class="flex items-center"><i class="fa-solid fa-download text-teal-600 mr-3 w-4"></i> <span data-en="Download .STEP & Mesh" data-bg="Изтегляне на .STEP и Mesh">Download .STEP & Mesh</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-wrench text-teal-600 mr-3 w-4"></i> <span data-en="Auto Mesh Repair" data-bg="Автоматична поправка">Auto Mesh Repair</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-layer-group text-teal-600 mr-3 w-4"></i> <span data-en="Open Tray or 2-Part" data-bg="Отворен или двучастен">Open Tray or 2-Part</span></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="bg-teal-50 rounded-2xl shadow-lg border border-teal-200 overflow-hidden transform hover:-translate-y-1 transition duration-300 relative">
-                    <div class="absolute top-0 right-0 bg-teal-200 text-teal-800 text-xs font-bold px-3 py-1 rounded-bl-lg" data-en="Turnkey Solution" data-bg="Цялостно решение">Turnkey Solution</div>
-                    <div class="p-8">
-                        <h3 class="text-2xl font-bold mb-2 text-teal-900" data-en="Physical Production" data-bg="Физическо производство">Physical Production</h3>
-                        <p class="text-teal-700 mb-6" data-en="We manufacture the mold for you." data-bg="Ние произвеждаме калъпа за вас.">We manufacture the mold for you.</p>
-                        <div class="text-4xl font-extrabold mb-2 text-teal-900"><span class="text-xl font-bold" data-en="from " data-bg="от ">from </span>$49<span class="text-lg font-normal text-teal-700" data-en=" /mold" data-bg=" /калъп"> /mold</span></div>
-                        <div class="text-sm font-bold text-teal-600 mb-6" data-en="(20% off for Pro users)" data-bg="(20% отстъпка за Pro потребители)">(20% off for Pro users)</div>
-                        <ul class="space-y-3 text-teal-900">
-                            <li class="flex items-center"><i class="fa-solid fa-file-zipper text-teal-600 mr-3 w-4"></i> <span data-en="Digital Files Included" data-bg="Включени цифрови файлове">Digital Files Included</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-industry text-teal-600 mr-3 w-4"></i> <span data-en="3D Printed or CNC Machined" data-bg="3D печат или CNC обработка">3D Printed or CNC Machined</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-boxes-stacked text-teal-600 mr-3 w-4"></i> <span data-en="Various Material Options" data-bg="Различни материали">Various Material Options</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-truck-fast text-teal-600 mr-3 w-4"></i> <span data-en="Shipped to Your Door" data-bg="Доставка до вратата ви">Shipped to Your Door</span></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="bg-teal-700 rounded-2xl shadow-xl overflow-hidden transform hover:-translate-y-1 transition duration-300 relative text-white">
-                    <div class="absolute top-0 right-0 bg-teal-500 text-xs font-bold px-3 py-1 rounded-bl-lg" data-en="For Teams" data-bg="За екипи">For Teams</div>
-                    <div class="p-8">
-                        <h3 class="text-2xl font-bold mb-2" data-en="Pro Subscription" data-bg="Pro абонамент">Pro Subscription</h3>
-                        <p class="text-teal-200 mb-6" data-en="For startups and prototyping labs." data-bg="За стартъпи и лаборатории за прототипи.">For startups and prototyping labs.</p>
-                        <div class="text-4xl font-extrabold mb-6">$99<span class="text-lg font-normal text-teal-200" data-en=" /month" data-bg=" /месец"> /month</span></div>
-                        <ul class="space-y-3">
-                            <li class="flex items-center"><i class="fa-solid fa-infinity text-teal-300 mr-3 w-4"></i> <span data-en="Unlimited Mold Exports" data-bg="Неограничен брой експорти">Unlimited Mold Exports</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-star text-teal-300 mr-3 w-4"></i> <span data-en="Professional .STEP Output" data-bg="Професионален .STEP изход">Professional .STEP Output</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-magnifying-glass-plus text-teal-300 mr-3 w-4"></i> <span data-en="High-Res Complex Geometry" data-bg="Висока резолюция за сложна геометрия">High-Res Complex Geometry</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-clock-rotate-left text-teal-300 mr-3 w-4"></i> <span data-en="Priority Processing" data-bg="Приоритетна обработка">Priority Processing</span></li>
-                            <li class="flex items-center"><i class="fa-solid fa-tags text-teal-300 mr-3 w-4"></i> <span data-en="20% Off Manufactured Parts" data-bg="20% отстъпка за произведени части">20% Off Manufactured Parts</span></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-stone-200">
-                <h3 class="text-xl font-bold text-center mb-4" data-en="Projected Revenue Growth Mix" data-bg="Прогнозен микс на приходите">Projected Revenue Growth Mix</h3>
-                <div class="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-6 text-sm font-semibold">
-                    <div class="text-teal-800 bg-teal-100 px-4 py-1.5 rounded-full"><span data-en="Year 3 Target: ~6,000 Active Pro Users" data-bg="Цел за Година 3: ~6 000 активни Pro потребители">Year 3 Target: ~6,000 Active Pro Users</span></div>
-                    <div class="text-stone-700 bg-stone-100 border border-stone-200 px-4 py-1.5 rounded-full"><span data-en="~8,000 Individual Exports / Month" data-bg="~8 000 индивидуални експорта на месец">~8,000 Individual Exports / Month</span></div>
-                </div>
-                <div class="chart-container" style="max-width:800px;height:350px;"><canvas id="revenueChart"></canvas></div>
-                <p class="text-center text-sm text-stone-500 mt-6 max-w-3xl mx-auto" data-en="Subscriptions provide predictable MRR while Digital & Physical Sales act as an acquisition funnel. Projections are based on scaling from 20 initial beta users to our Year 3 targets." data-bg="Абонаментите осигуряват предвидим месечен приход (MRR), докато цифровите и физическите продажби служат като фуния за привличане на клиенти. Прогнозите се базират на ръст от 20 начални бета потребители до целите за Година 3.">Subscriptions provide predictable MRR while Digital & Physical Sales act as an acquisition funnel. Projections are based on scaling from 20 initial beta users to our Year 3 targets.</p>
-            </div>
-        </div>
-    </section>
+<section id="signup" class="py-24 bg-teal-800 text-white">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+<h2 class="text-3xl md:text-5xl font-bold mb-6" data-en="Ready to Master Your Molds?" data-bg="Готови ли сте да създавате калъпи?">Ready to Master Your Molds?</h2>
+<p class="text-xl text-teal-100 mb-10 max-w-2xl mx-auto" data-en="Join our waitlist to get early access to the beta and secure a lifetime discount on your first subscription." data-bg="Запишете се в списъка ни за ранен достъп и доживотна отстъпка от първия абонамент.">Join our waitlist to get early access to the beta and secure a lifetime discount on your first subscription.</p>
+<form id="signup-form" class="flex flex-col sm:flex-row max-w-lg mx-auto gap-4">
+<input type="email" id="email-input" required placeholder="Enter your email address" data-en="Enter your email address" data-bg="Въведете имейл адрес" class="flex-1 px-6 py-4 rounded-lg text-stone-800 focus:outline-none focus:ring-2 focus:ring-teal-400"/>
+<button type="submit" class="px-8 py-4 bg-stone-900 text-white rounded-lg font-bold hover:bg-stone-800 transition shadow-lg whitespace-nowrap" data-en="Get Early Access" data-bg="Ранен достъп">Get Early Access</button>
+</form>
+<p id="form-success" class="text-teal-200 mt-4 hidden font-medium" data-en="Thanks for signing up! We'll be in touch soon." data-bg="Благодарим за записването! Скоро ще се свържем с вас.">Thanks for signing up! We'll be in touch soon.</p>
+</div></section>
 
-    <!-- SIGNUP -->
-    <section id="signup" class="py-24 bg-teal-800 text-white">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-3xl md:text-5xl font-bold mb-6" data-en="Ready to Master Your Molds?" data-bg="Готови ли сте да създавате перфектни калъпи?">Ready to Master Your Molds?</h2>
-            <p class="text-xl text-teal-100 mb-10 max-w-2xl mx-auto" data-en="Join our waitlist to get early access to the beta and secure a lifetime discount on your first subscription." data-bg="Присъединете се към списъка ни за ранен достъп до бета версията и получете доживотна отстъпка за първия си абонамент.">Join our waitlist to get early access to the beta and secure a lifetime discount on your first subscription.</p>
-            <form id="signup-form" class="flex flex-col sm:flex-row max-w-lg mx-auto gap-4">
-                <input type="email" id="email-input" required placeholder="Enter your email address" data-en="Enter your email address" data-bg="Въведете имейл адрес" class="flex-1 px-6 py-4 rounded-lg text-stone-800 focus:outline-none focus:ring-2 focus:ring-teal-400" />
-                <button type="submit" class="px-8 py-4 bg-stone-900 text-white rounded-lg font-bold hover:bg-stone-800 transition shadow-lg whitespace-nowrap" data-en="Get Early Access" data-bg="Ранен достъп">Get Early Access</button>
-            </form>
-            <p id="form-success" class="text-teal-200 mt-4 hidden font-medium" data-en="Thanks for signing up! We'll be in touch soon." data-bg="Благодарим за регистрацията! Скоро ще се свържем с вас.">Thanks for signing up! We'll be in touch soon.</p>
-        </div>
-    </section>
+<footer class="bg-stone-900 text-stone-400 py-12 text-center">
+<div class="max-w-7xl mx-auto px-4">
+<div class="flex items-center justify-center text-2xl font-bold text-teal-500 mb-4"><i class="fa-solid fa-gear mr-2"></i><span>MoldMaster</span></div>
+<p class="mb-6" data-en="The future of accessible rapid prototyping." data-bg="Бъдещето на достъпното бързо прототипиране.">The future of accessible rapid prototyping.</p>
+<div class="flex justify-center space-x-6">
+<a href="#" class="hover:text-white transition" data-en="Pitch Deck Overview" data-bg="Преглед на презентацията">Pitch Deck Overview</a>
+<a href="#" class="hover:text-white transition" data-en="Contact Founders" data-bg="Свържете се с основателите">Contact Founders</a>
+<a href="#signup" class="hover:text-white transition" data-en="Join the Beta" data-bg="Включете се в бетата">Join the Beta</a>
+</div>
+<div class="mt-12 text-sm border-t border-stone-800 pt-8">&copy; 2026 MoldMaster Inc. All rights reserved.</div>
+</div></footer>
 
-    <footer class="bg-stone-900 text-stone-400 py-12 text-center">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex items-center justify-center text-2xl font-bold text-teal-500 mb-4"><i class="fa-solid fa-gear mr-2"></i><span>MoldMaster</span></div>
-            <p class="mb-6" data-en="The future of accessible rapid prototyping." data-bg="Бъдещето на достъпното бързо прототипиране.">The future of accessible rapid prototyping.</p>
-            <div class="flex justify-center space-x-6">
-                <a href="#" class="hover:text-white transition" data-en="Pitch Deck Overview" data-bg="Преглед на презентацията">Pitch Deck Overview</a>
-                <a href="#" class="hover:text-white transition" data-en="Contact Founders" data-bg="Свържете се с основателите">Contact Founders</a>
-                <a href="#signup" class="hover:text-white transition" data-en="Join the Beta" data-bg="Включете се в бета">Join the Beta</a>
-            </div>
-            <div class="mt-12 text-sm border-t border-stone-800 pt-8">&copy; 2026 MoldMaster Inc. All rights reserved.</div>
-        </div>
-    </footer>
+<script>
+let compChartRef=null,revChartRef=null;
+window.toggleLanguage=function(lang){
+document.querySelectorAll('[data-en]').forEach(el=>{if(el.tagName==='INPUT')el.placeholder=el.getAttribute('data-'+lang);else el.innerHTML=el.getAttribute('data-'+lang);});
+const btnEn=document.getElementById('lang-btn-en'),btnBg=document.getElementById('lang-btn-bg');
+if(lang==='en'){btnEn.classList.add('text-teal-600');btnEn.classList.remove('text-stone-500');btnBg.classList.add('text-stone-500');btnBg.classList.remove('text-teal-600');}
+else{btnBg.classList.add('text-teal-600');btnBg.classList.remove('text-stone-500');btnEn.classList.add('text-stone-500');btnEn.classList.remove('text-teal-600');}
+if(compChartRef){if(lang==='bg'){compChartRef.data.labels=['Облачна корекция','Предоставяне на файл','Лесна употреба','Ценова достъпност','Сложни двукомп. калъпи'];compChartRef.data.datasets[0].label='MoldMaster';compChartRef.data.datasets[1].label='Базови генератори';compChartRef.data.datasets[2].label='Desktop CAD / обвързване';}else{compChartRef.data.labels=['Cloud Mesh Repair','Provides Digital File','Ease of Use','Cost Efficiency','Complex 2-Part Output'];compChartRef.data.datasets[0].label='MoldMaster';compChartRef.data.datasets[1].label='Basic Generators';compChartRef.data.datasets[2].label='Desktop CAD / Lock-ins';}compChartRef.update();}
+if(revChartRef){if(lang==='bg'){revChartRef.data.datasets[0].label='Продажби на файлове и калъпи';revChartRef.data.datasets[1].label='Приходи от абонаменти (MRR)';}else{revChartRef.data.datasets[0].label='Digital & Physical Sales';revChartRef.data.datasets[1].label='Subscription Revenue (MRR)';}revChartRef.update();}
+};
 
-    <script>
-        let compChartRef = null, revChartRef = null;
+function initScrollMold(){
+const section=document.getElementById('mold-3d-section');
+const container=document.getElementById('mold-canvas-wrap');
+if(!container)return;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x1c1917);
+const camera=new THREE.PerspectiveCamera(50,container.clientWidth/container.clientHeight,0.1,1000);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(container.clientWidth,container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
+container.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+const d=new THREE.DirectionalLight(0xffffff,1);d.position.set(10,20,15);scene.add(d);
+const b=new THREE.DirectionalLight(0x88ccff,0.4);b.position.set(-10,-5,-15);scene.add(b);
+const r=new THREE.DirectionalLight(0xffa500,0.3);r.position.set(0,-10,10);scene.add(r);
+const group=new THREE.Group();scene.add(group);
+let topHalf=null,bottomHalf=null,innerObj=null,modelReady=false,scrollProgress=0;
+const loader=new THREE.GLTFLoader();
+const moldMat=new THREE.MeshPhysicalMaterial({color:0xb0e0e6,transparent:true,opacity:0.45,roughness:0.15,metalness:0.05,side:THREE.DoubleSide});
+const gummyMat=new THREE.MeshStandardMaterial({color:0xff4500,roughness:0.25,metalness:0.05});
 
-        // ===== LANGUAGE TOGGLE =====
-        window.toggleLanguage = function(lang) {
-            document.querySelectorAll('[data-en]').forEach(el => {
-                if (el.tagName === 'INPUT') el.placeholder = el.getAttribute('data-'+lang);
-                else el.innerHTML = el.getAttribute('data-'+lang);
-            });
-            const btnEn = document.getElementById('lang-btn-en'), btnBg = document.getElementById('lang-btn-bg');
-            if(lang==='en'){btnEn.classList.add('text-teal-600');btnEn.classList.remove('text-stone-500');btnBg.classList.add('text-stone-500');btnBg.classList.remove('text-teal-600');}
-            else{btnBg.classList.add('text-teal-600');btnBg.classList.remove('text-stone-500');btnEn.classList.add('text-stone-500');btnEn.classList.remove('text-teal-600');}
-            if(compChartRef){
-                compChartRef.data.labels = lang==='bg' ? ['Облачна поправка','Получаване на файла','Лесна употреба','Ценова ефективност','Сложни двучастни калъпи'] : ['Cloud Mesh Repair','Provides Digital File','Ease of Use','Cost Efficiency','Complex 2-Part Output'];
-                compChartRef.data.datasets[0].label='MoldMaster';
-                compChartRef.data.datasets[1].label=lang==='bg'?'Базови генератори':'Basic Generators';
-                compChartRef.data.datasets[2].label='Desktop CAD / Lock-ins';
-                compChartRef.update();
-            }
-            if(revChartRef){
-                revChartRef.data.datasets[0].label=lang==='bg'?'Цифрови и физически продажби':'Digital & Physical Sales';
-                revChartRef.data.datasets[1].label=lang==='bg'?'Приходи от абонаменти (MRR)':'Subscription Revenue (MRR)';
-                revChartRef.update();
-            }
-        };
+loader.load('mold_example.glb',function(gltf){
+const root=gltf.scene;const meshes=[];
+root.traverse(function(c){if(c.isMesh)meshes.push(c);});
+if(meshes.length===0)return;
+const wholeBox=new THREE.Box3().setFromObject(root);
+const center=wholeBox.getCenter(new THREE.Vector3());
+topHalf=new THREE.Group();bottomHalf=new THREE.Group();innerObj=new THREE.Group();
 
-        // ===== PITCH DECK VIEWER (placeholder until Figma connected) =====
-        let pitchSlides = [];
-        let pitchCurrentSlide = 0;
+if(meshes.length>=3){
+meshes.forEach(function(m,i){
+const cl=m.clone();
+if(i===0){cl.material=moldMat;topHalf.add(cl);}
+else if(i===meshes.length-1){cl.material=moldMat;bottomHalf.add(cl);}
+else{cl.material=gummyMat;innerObj.add(cl);}
+});
+}else if(meshes.length===2){
+meshes.forEach(function(m,i){
+const cl=m.clone();cl.material=moldMat;
+const mb=new THREE.Box3().setFromObject(m);
+if(mb.getCenter(new THREE.Vector3()).y>=center.y)topHalf.add(cl);else bottomHalf.add(cl);
+});
+}else{
+const cl=meshes[0].clone();cl.material=moldMat;
+const cl2=meshes[0].clone();cl2.material=moldMat;
+topHalf.add(cl);bottomHalf.add(cl2);
+}
+if(innerObj.children.length===0){
+const sz=wholeBox.getSize(new THREE.Vector3());
+const geo=new THREE.SphereGeometry(sz.x*0.2,32,32);
+const gummy=new THREE.Mesh(geo,gummyMat);gummy.position.copy(center);
+innerObj.add(gummy);
+}
+group.add(topHalf,bottomHalf,innerObj);
+const fb=new THREE.Box3().setFromObject(group);const fc=fb.getCenter(new THREE.Vector3());const fs=fb.getSize(new THREE.Vector3());
+group.position.set(-fc.x,-fc.y,-fc.z);
+group.scale.setScalar(5/Math.max(fs.x,fs.y,fs.z));
+camera.position.set(0,2,10);camera.lookAt(0,0,0);
+modelReady=true;
+},undefined,function(){
+topHalf=new THREE.Group();bottomHalf=new THREE.Group();innerObj=new THREE.Group();
+const bg=new THREE.BoxGeometry(4,1.5,4);
+topHalf.add(new THREE.Mesh(bg,moldMat));bottomHalf.add(new THREE.Mesh(bg,moldMat));
+innerObj.add(new THREE.Mesh(new THREE.TorusKnotGeometry(0.8,0.25,100,16),gummyMat));
+group.add(topHalf,bottomHalf,innerObj);
+camera.position.set(0,2,10);camera.lookAt(0,0,0);modelReady=true;
+});
 
-        function openPitchViewer() {
-            document.getElementById('pitch-viewer').classList.add('active');
-            document.body.style.overflow = 'hidden';
-            if (pitchSlides.length === 0) loadPitchDeck();
-            else renderPitchSlide();
-        }
-        function closePitchViewer() {
-            document.getElementById('pitch-viewer').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        function pitchPrev() { if(pitchCurrentSlide > 0) { pitchCurrentSlide--; renderPitchSlide(); } }
-        function pitchNext() { if(pitchCurrentSlide < pitchSlides.length - 1) { pitchCurrentSlide++; renderPitchSlide(); } }
-        function renderPitchSlide() {
-            const container = document.getElementById('pitch-slide-content');
-            const slide = pitchSlides[pitchCurrentSlide];
-            container.innerHTML = '<div style="max-width:900px;width:90%;aspect-ratio:16/9;background:white;border-radius:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;text-align:center;">' +
-                '<h2 style="font-size:2rem;font-weight:800;margin-bottom:1rem;color:#292524;">' + slide.title + '</h2>' +
-                '<p style="font-size:1.1rem;color:#57534e;max-width:600px;line-height:1.6;">' + slide.body + '</p>' +
-                (slide.icon ? '<div style="margin-top:2rem;font-size:3rem;color:#0d9488;"><i class="' + slide.icon + '"></i></div>' : '') +
-                '</div>';
-            document.getElementById('pitch-page').textContent = (pitchCurrentSlide+1) + ' / ' + pitchSlides.length;
-        }
-        function loadPitchDeck() {
-            // Built-in pitch deck slides (will be replaced with Figma content once connected)
-            pitchSlides = [
-                { title: 'MoldMaster', body: 'Flawless Molds from Any Mesh. Revolutionizing rapid prototyping for everyone.', icon: 'fa-solid fa-gear' },
-                { title: 'The Problem', body: 'Non-manifold meshes, high iteration costs, and fragmented tooling block small businesses from producing molds.', icon: 'fa-solid fa-triangle-exclamation' },
-                { title: 'Our Solution', body: 'A universal cloud engine that auto-heals meshes and generates production-ready two-part and open tray molds instantly.', icon: 'fa-solid fa-wand-magic-sparkles' },
-                { title: 'Mold Types', body: 'Two-Part Molds for injection molding. Open Tray Molds for casting. All 3D-printing ready.', icon: 'fa-solid fa-layer-group' },
-                { title: 'Market Opportunity', body: 'We serve the massive "missing middle" — hobbyists and startups ignored by SolidWorks and locked out by Protolabs.', icon: 'fa-solid fa-chart-line' },
-                { title: 'Business Model', body: '$9.99 per export · Physical molds from $49 · Pro subscription at $99/month with unlimited exports.', icon: 'fa-solid fa-sack-dollar' },
-                { title: 'Competitive Edge', body: 'Auto-healing mesh engine + .STEP import/export + dual output modes. No other tool combines all three.', icon: 'fa-solid fa-bolt' },
-                { title: 'Revenue Projections', body: 'Year 3 target: ~6,000 Pro users, ~8,000 individual exports/month. Subscriptions drive predictable MRR.', icon: 'fa-solid fa-arrow-trend-up' },
-                { title: 'Join Us', body: 'Get early access at moldmaster.xyz and secure a lifetime discount on your first subscription.', icon: 'fa-solid fa-rocket' },
-            ];
-            renderPitchSlide();
-        }
-        // Keyboard nav for pitch viewer
-        document.addEventListener('keydown', e => {
-            if (!document.getElementById('pitch-viewer').classList.contains('active')) return;
-            if (e.key === 'ArrowRight' || e.key === ' ') pitchNext();
-            else if (e.key === 'ArrowLeft') pitchPrev();
-            else if (e.key === 'Escape') closePitchViewer();
-        });
+function updateScroll(){
+const rect=section.getBoundingClientRect();
+const sTop=-rect.top;const sH=section.offsetHeight-window.innerHeight;
+scrollProgress=Math.max(0,Math.min(1,sTop/sH));
+const hint=document.getElementById('scroll-hint');
+if(hint)hint.style.opacity=scrollProgress>0.05?'0':'1';
+}
+window.addEventListener('scroll',updateScroll,{passive:true});
 
-        // ===== 3D SCROLL EXPLODE =====
-        function init3DExplode() {
-            const container = document.getElementById('3d-preview-container');
-            if (!container) return;
+function animate(){
+requestAnimationFrame(animate);
+if(!modelReady){renderer.render(scene,camera);return;}
+const exp=scrollProgress*4;
+if(topHalf)topHalf.position.y=exp;
+if(bottomHalf)bottomHalf.position.y=-exp;
+group.rotation.y+=0.006;
+group.rotation.x=-0.2+scrollProgress*0.4;
+if(innerObj)innerObj.traverse(function(c){if(c.isMesh){c.material.transparent=true;c.material.opacity=Math.min(1,scrollProgress*3);}});
+renderer.render(scene,camera);
+}
+animate();
+window.addEventListener('resize',function(){
+if(container.clientWidth>0){camera.aspect=container.clientWidth/container.clientHeight;camera.updateProjectionMatrix();renderer.setSize(container.clientWidth,container.clientHeight);}
+});
+}
 
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1c1917);
-            const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.3;
-            container.appendChild(renderer.domElement);
+document.addEventListener('DOMContentLoaded',function(){
+initScrollMold();
+['signup-form','hero-signup-form'].forEach(function(id){
+var form=document.getElementById(id);if(!form)return;
+form.addEventListener('submit',function(e){e.preventDefault();
+var input=form.querySelector('input[type=email]');
+var sid=id==='signup-form'?'form-success':'hero-form-success';
+var msg=document.getElementById(sid);
+if(input&&input.value){input.value='';if(msg){msg.classList.remove('hidden');setTimeout(function(){msg.classList.add('hidden');},5000);}}
+});});
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-            const dir = new THREE.DirectionalLight(0xffffff, 1.2);
-            dir.position.set(8, 15, 12);
-            scene.add(dir);
-            scene.add(new THREE.DirectionalLight(0x88ccff, 0.3).position.set(-10, -5, -10) && new THREE.DirectionalLight(0x88ccff, 0.3));
+var cc=document.getElementById('competitorChart');
+if(cc){compChartRef=new Chart(cc.getContext('2d'),{type:'radar',data:{labels:['Cloud Mesh Repair','Provides Digital File','Ease of Use','Cost Efficiency','Complex 2-Part Output'],datasets:[{label:'MoldMaster',data:[100,100,95,90,100],backgroundColor:'rgba(13,148,136,0.2)',borderColor:'rgba(13,148,136,1)',pointBackgroundColor:'rgba(13,148,136,1)',borderWidth:2},{label:'Basic Generators',data:[30,100,90,80,20],backgroundColor:'rgba(214,211,209,0.2)',borderColor:'rgba(214,211,209,1)',pointBackgroundColor:'rgba(214,211,209,1)',borderWidth:2,borderDash:[5,5]},{label:'Desktop CAD / Lock-ins',data:[50,20,30,40,95],backgroundColor:'rgba(120,113,108,0.2)',borderColor:'rgba(120,113,108,1)',pointBackgroundColor:'rgba(120,113,108,1)',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{angleLines:{color:'rgba(0,0,0,0.1)'},grid:{color:'rgba(0,0,0,0.1)'},pointLabels:{font:{family:'Inter',size:12},color:'#44403c'},ticks:{display:false,max:100,min:0}}},plugins:{legend:{position:'bottom',labels:{font:{family:'Inter'}}}}}});}
 
-            const group = new THREE.Group();
-            scene.add(group);
-
-            let partA = null, partB = null, gummy = null;
-
-            const gummyMat = new THREE.MeshStandardMaterial({ color: 0xff4500, roughness: 0.25, metalness: 0.05 });
-            const moldMat = new THREE.MeshPhysicalMaterial({ color: 0xb0e0e6, transparent: true, opacity: 0.45, roughness: 0.15, metalness: 0.05, side: THREE.DoubleSide });
-
-            const loader = new THREE.GLTFLoader();
-            loader.load('mold_example.glb', (gltf) => {
-                gltf.scene.traverse(child => {
-                    if (!child.isMesh) return;
-                    const n = child.name.toLowerCase();
-                    if (n.includes('gummy')) { child.material = gummyMat; gummy = child; }
-                    else { child.material = moldMat; if (n.includes('part_a') || n.includes('cavity')) partA = child; else partB = child; }
-                });
-                group.add(gltf.scene);
-
-                // Center and scale
-                const box = new THREE.Box3().setFromObject(group);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                group.position.set(-center.x, -center.y, -center.z);
-                const s = 5.0 / Math.max(size.x, size.y, size.z);
-                group.scale.setScalar(s);
-
-                camera.position.set(0, 2, 9);
-                camera.lookAt(0, 0, 0);
-
-                // Store original positions
-                if (partA) partA.userData.origY = partA.position.y;
-                if (partB) partB.userData.origY = partB.position.y;
-            }, undefined, (err) => {
-                console.warn('GLB load failed:', err);
-            });
-
-            // Scroll-driven explode
-            const section = document.getElementById('mold-3d-section');
-            let scrollProgress = 0;
-
-            function updateExplode() {
-                const rect = section.getBoundingClientRect();
-                const sectionH = section.offsetHeight;
-                const viewH = window.innerHeight;
-                const scrolled = -rect.top;
-                scrollProgress = Math.max(0, Math.min(1, scrolled / (sectionH - viewH)));
-
-                const explodeDist = 3.0 * scrollProgress;
-                if (partA) partA.position.y = (partA.userData.origY || 0) + explodeDist;
-                if (partB) partB.position.y = (partB.userData.origY || 0) - explodeDist;
-
-                // Update label
-                const label = document.getElementById('mold-3d-label');
-                if (label) {
-                    const lang = document.getElementById('lang-btn-bg').classList.contains('text-teal-600') ? 'bg' : 'en';
-                    if (scrollProgress > 0.9) label.innerHTML = lang==='bg' ? '<i class="fa-solid fa-check mr-2"></i>Калъпът е напълно разглобен!' : '<i class="fa-solid fa-check mr-2"></i>Mold fully exploded!';
-                    else label.innerHTML = lang==='bg' ? 'Превъртете, за да разглобите калъпа' : 'Scroll to explode the mold';
-                }
-            }
-
-            window.addEventListener('scroll', updateExplode, { passive: true });
-
-            // Auto rotate + render
-            const animate = () => {
-                requestAnimationFrame(animate);
-                group.rotation.y += 0.004;
-                renderer.render(scene, camera);
-            };
-            animate();
-
-            window.addEventListener('resize', () => {
-                if (container.clientWidth > 0) {
-                    camera.aspect = container.clientWidth / container.clientHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(container.clientWidth, container.clientHeight);
-                }
-            });
-        }
-
-        // ===== INIT =====
-        document.addEventListener('DOMContentLoaded', function() {
-            init3DExplode();
-
-            // Forms
-            ['signup-form','hero-signup-form'].forEach(id => {
-                const form = document.getElementById(id);
-                if (!form) return;
-                form.addEventListener('submit', e => {
-                    e.preventDefault();
-                    const input = form.querySelector('input[type=email]');
-                    const msgId = id === 'signup-form' ? 'form-success' : 'hero-form-success';
-                    const msg = document.getElementById(msgId);
-                    if (input.value) { input.value = ''; msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 5000); }
-                });
-            });
-
-            // Charts
-            const compCanvas = document.getElementById('competitorChart');
-            if(compCanvas) {
-                compChartRef = new Chart(compCanvas.getContext('2d'), {
-                    type:'radar', data:{ labels:['Cloud Mesh Repair','Provides Digital File','Ease of Use','Cost Efficiency','Complex 2-Part Output'],
-                    datasets:[
-                        {label:'MoldMaster',data:[100,100,95,90,100],backgroundColor:'rgba(13,148,136,0.2)',borderColor:'rgba(13,148,136,1)',pointBackgroundColor:'rgba(13,148,136,1)',borderWidth:2},
-                        {label:'Basic Generators',data:[30,100,90,80,20],backgroundColor:'rgba(214,211,209,0.2)',borderColor:'rgba(214,211,209,1)',pointBackgroundColor:'rgba(214,211,209,1)',borderWidth:2,borderDash:[5,5]},
-                        {label:'Desktop CAD / Lock-ins',data:[50,20,30,40,95],backgroundColor:'rgba(120,113,108,0.2)',borderColor:'rgba(120,113,108,1)',pointBackgroundColor:'rgba(120,113,108,1)',borderWidth:2}
-                    ]}, options:{responsive:true,maintainAspectRatio:false,scales:{r:{angleLines:{color:'rgba(0,0,0,0.1)'},grid:{color:'rgba(0,0,0,0.1)'},pointLabels:{font:{family:'Inter',size:12},color:'#44403c'},ticks:{display:false,max:100,min:0}}},plugins:{legend:{position:'bottom',labels:{font:{family:'Inter'}}}}}
-                });
-            }
-            const revCanvas = document.getElementById('revenueChart');
-            if(revCanvas) {
-                revChartRef = new Chart(revCanvas.getContext('2d'), {
-                    type:'bar', data:{ labels:['Q1','Q2','Q3','Q4','Year 2','Year 3'],
-                    datasets:[
-                        {label:'Digital & Physical Sales',data:[5000,12000,18000,25000,60000,120000],backgroundColor:'#d6d3d1'},
-                        {label:'Subscription Revenue (MRR)',data:[2000,15000,35000,65000,250000,600000],backgroundColor:'#0d9488'}
-                    ]}, options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,border:{display:false},ticks:{callback:function(v){return v>=1000?'$'+v/1000+'k':'$'+v;}}}},plugins:{legend:{position:'top',labels:{font:{family:'Inter'}}},tooltip:{mode:'index',intersect:false}}}
-                });
-            }
-        });
-    </script>
+var rc=document.getElementById('revenueChart');
+if(rc){revChartRef=new Chart(rc.getContext('2d'),{type:'bar',data:{labels:['Q1','Q2','Q3','Q4','Year 2','Year 3'],datasets:[{label:'Digital & Physical Sales',data:[5000,12000,18000,25000,60000,120000],backgroundColor:'#d6d3d1'},{label:'Subscription Revenue (MRR)',data:[2000,15000,35000,65000,250000,600000],backgroundColor:'#0d9488'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,border:{display:false},ticks:{callback:function(v){return v>=1000?'$'+v/1000+'k':'$'+v;}}}},plugins:{legend:{position:'top',labels:{font:{family:'Inter'}}},tooltip:{mode:'index',intersect:false}}}});}
+});
+</script>
 </body>
 </html>
