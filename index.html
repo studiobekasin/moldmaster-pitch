@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoldMaster — Flawless Molds from Any Mesh</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+            --teal:#0d9488;--teal-light:#14b8a6;--teal-dark:#0f766e;
+            --dark:#0c1220;--dark2:#111827;--dark3:#1e293b;
+            --text:#e2e8f0;--text-dim:#94a3b8;--text-bright:#f8fafc;
+            --accent:#06b6d4;
+        }
+        html{scroll-behavior:smooth}
+        body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);overflow-x:hidden}
+        h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif}
+
+        /* NAV */
+        nav{position:fixed;top:0;width:100%;z-index:100;background:rgba(12,18,32,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);transition:background .3s}
+        .nav-inner{max-width:1200px;margin:auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+        .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.4rem;color:var(--teal-light);display:flex;align-items:center;gap:8px;text-decoration:none}
+        .logo i{font-size:1.2rem}
+        .nav-links{display:flex;gap:28px;align-items:center}
+        .nav-links a{color:var(--text-dim);text-decoration:none;font-size:.9rem;font-weight:500;transition:color .2s}
+        .nav-links a:hover{color:var(--teal-light)}
+        .lang-toggle{display:flex;gap:6px;align-items:center;margin-left:16px;padding-left:16px;border-left:1px solid rgba(255,255,255,.1)}
+        .lang-btn{background:none;border:none;color:var(--text-dim);font-size:.8rem;font-weight:700;cursor:pointer;transition:color .2s}
+        .lang-btn.active{color:var(--teal-light)}
+        @media(max-width:768px){.nav-links{display:none}}
+
+        /* HERO */
+        #hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
+        #hero::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(13,148,136,.12) 0%,transparent 70%);pointer-events:none}
+        .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(13,148,136,.15);border:1px solid rgba(13,148,136,.3);color:var(--teal-light);padding:6px 16px;border-radius:100px;font-size:.85rem;font-weight:600;margin-bottom:32px}
+        .hero-badge i{font-size:.75rem}
+        h1{font-size:clamp(2.8rem,6vw,5rem);font-weight:700;line-height:1.05;margin-bottom:24px;letter-spacing:-.02em}
+        h1 .teal{color:var(--teal-light)}
+        .hero-sub{font-size:1.1rem;color:var(--text-dim);max-width:560px;line-height:1.6;margin-bottom:40px}
+        .hero-actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+
+        /* CTA BUTTON — 3D on hover */
+        .cta-btn{
+            position:relative;display:inline-flex;align-items:center;gap:10px;
+            padding:14px 32px;border:none;border-radius:12px;
+            font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;
+            cursor:pointer;transition:transform .2s,box-shadow .2s;text-decoration:none;
+        }
+        .cta-primary{background:linear-gradient(135deg,#e84a2e,#f97316);color:#fff}
+        .cta-primary:hover{transform:translateY(-3px);box-shadow:0 6px 0 0 #b33a1e,0 12px 30px rgba(232,74,46,.35)}
+        .cta-secondary{background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.12)}
+        .cta-secondary:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+
+        /* 3D MOLD SCROLL SECTION */
+        #mold-3d-section{height:300vh;position:relative}
+        #mold-3d-sticky{position:sticky;top:0;height:100vh;overflow:hidden;background:var(--dark2)}
+        #mold-canvas-wrap{width:100%;height:100%}
+        #mold-canvas-wrap canvas{display:block;width:100%;height:100%}
+        .mold-overlay-label{position:absolute;top:32px;left:50%;transform:translateX(-50%);z-index:10;pointer-events:none;
+            display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);backdrop-filter:blur(8px);
+            padding:8px 20px;border-radius:100px;border:1px solid rgba(255,255,255,.1);color:var(--text-bright);font-size:.85rem;font-weight:600}
+        .mold-overlay-label i{color:var(--teal-light)}
+        .scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);color:var(--text-dim);font-size:.8rem;text-align:center;animation:bounce 2s infinite}
+        @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
+
+        /* FEATURES SECTION */
+        #features{padding:120px 24px;background:var(--dark)}
+        .section-inner{max-width:1200px;margin:auto}
+        .section-tag{display:inline-flex;align-items:center;gap:6px;color:var(--teal-light);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+        .section-title{font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:700;margin-bottom:16px;color:var(--text-bright)}
+        .section-desc{font-size:1.05rem;color:var(--text-dim);max-width:600px;line-height:1.6;margin-bottom:56px}
+        .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+        .feature-card{
+            background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
+            border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:32px;
+            transition:transform .3s,border-color .3s,box-shadow .3s;position:relative;overflow:hidden
+        }
+        .feature-card:hover{transform:translateY(-4px);border-color:rgba(13,148,136,.3);box-shadow:0 16px 48px rgba(0,0,0,.3)}
+        .feature-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:20px}
+        .feature-icon.teal{background:rgba(13,148,136,.15);color:var(--teal-light)}
+        .feature-icon.cyan{background:rgba(6,182,212,.15);color:var(--accent)}
+        .feature-icon.orange{background:rgba(249,115,22,.15);color:#f97316}
+        .feature-icon.purple{background:rgba(139,92,246,.15);color:#8b5cf6}
+        .feature-card h3{font-size:1.15rem;font-weight:700;margin-bottom:10px;color:var(--text-bright)}
+        .feature-card p{font-size:.92rem;color:var(--text-dim);line-height:1.55}
+
+        /* MOLD TYPES */
+        #mold-types{padding:120px 24px;background:linear-gradient(180deg,var(--teal-dark),#0a4a45)}
+        .types-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:56px}
+        .type-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px;text-align:center;transition:transform .3s}
+        .type-card:hover{transform:translateY(-4px)}
+        .type-card i{font-size:2.5rem;color:var(--teal-light);margin-bottom:16px;display:block}
+        .type-card h3{font-size:1.3rem;font-weight:700;margin-bottom:10px}
+        .type-card p{font-size:.9rem;color:rgba(255,255,255,.7);line-height:1.5}
+        /* 3D printer SVG in card */
+        .printer-svg-wrap{width:64px;height:64px;margin:0 auto 16px;color:var(--teal-light)}
+        .printer-svg-wrap svg{width:100%;height:100%;fill:currentColor}
+
+        /* WHY BETTER */
+        #why-better{padding:120px 24px;background:var(--dark)}
+        .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:48px}
+        @media(max-width:768px){.compare-grid{grid-template-columns:1fr}}
+        .compare-col{border-radius:16px;padding:36px;border:1px solid rgba(255,255,255,.06)}
+        .compare-col.us{background:linear-gradient(145deg,rgba(13,148,136,.12),rgba(13,148,136,.03));border-color:rgba(13,148,136,.25)}
+        .compare-col.them{background:rgba(255,255,255,.02)}
+        .compare-col h3{font-size:1.3rem;font-weight:700;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+        .compare-col.us h3{color:var(--teal-light)}
+        .compare-col.them h3{color:var(--text-dim)}
+        .compare-item{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;font-size:.92rem;line-height:1.5}
+        .compare-item i{margin-top:3px;flex-shrink:0}
+        .compare-col.us .compare-item i{color:var(--teal-light)}
+        .compare-col.them .compare-item i{color:#ef4444}
+
+        /* FINAL CTA */
+        #final-cta{padding:120px 24px;text-align:center;position:relative}
+        #final-cta::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(circle,rgba(13,148,136,.1) 0%,transparent 70%);pointer-events:none}
+        .final-title{font-size:clamp(2rem,4vw,3.2rem);font-weight:700;margin-bottom:16px;color:var(--text-bright)}
+        .final-sub{color:var(--text-dim);font-size:1.05rem;max-width:480px;margin:0 auto 40px;line-height:1.6}
+
+        /* FOOTER */
+        footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;color:var(--text-dim);font-size:.8rem}
+        footer a{color:var(--teal-light);text-decoration:none}
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+    <div class="nav-inner">
+        <a href="#" class="logo"><i class="fa-solid fa-gear"></i> MoldMaster</a>
+        <div class="nav-links">
+            <a href="#features" data-en="Features" data-bg="Функции">Features</a>
+            <a href="#mold-types" data-en="Mold Types" data-bg="Видове калъпи">Mold Types</a>
+            <a href="#why-better" data-en="Why Us" data-bg="Защо нас">Why Us</a>
+            <a href="presentation.html" data-en="Pitch Deck" data-bg="Презентация">Pitch Deck</a>
+            <div class="lang-toggle">
+                <button class="lang-btn active" id="lang-btn-en" onclick="toggleLanguage('en')">EN</button>
+                <span style="color:rgba(255,255,255,.2)">|</span>
+                <button class="lang-btn" id="lang-btn-bg" onclick="toggleLanguage('bg')">BG</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+    <div class="hero-badge"><i class="fa-solid fa-bolt"></i> <span data-en="Now in Early Access" data-bg="Ранен достъп — започни сега">Now in Early Access</span></div>
+    <h1>
+        <span data-en="Flawless Molds from" data-bg="Перфектни калъпи от">Flawless Molds from</span><br>
+        <span class="teal" data-en="Any Mesh." data-bg="всякакъв модел.">Any Mesh.</span>
+    </h1>
+    <p class="hero-sub" data-en="Upload any 3D file. Get a production-ready mold. We fix broken meshes automatically." data-bg="Качи произволен 3D файл. Получи готов за производство калъп. Поправяме счупени модели автоматично.">Upload any 3D file. Get a production-ready mold. We fix broken meshes automatically.</p>
+    <div class="hero-actions">
+        <a href="#final-cta" class="cta-btn cta-primary"><i class="fa-solid fa-rocket"></i> <span data-en="Get Free Trial" data-bg="Безплатен пробен период">Get Free Trial</span></a>
+        <a href="#mold-3d-section" class="cta-btn cta-secondary"><i class="fa-solid fa-arrow-down"></i> <span data-en="See It in Action" data-bg="Виж как работи">See It in Action</span></a>
+    </div>
+</section>
+
+<!-- 3D SCROLL MOLD EXPLODED VIEW -->
+<section id="mold-3d-section">
+    <div id="mold-3d-sticky">
+        <div id="mold-canvas-wrap"></div>
+        <div class="mold-overlay-label">
+            <i class="fa-solid fa-layer-group"></i>
+            <span data-en="Interactive 2-Part Mold Preview" data-bg="Интерактивен преглед на двукомпонентен калъп">Interactive 2-Part Mold Preview</span>
+        </div>
+        <div class="scroll-hint" id="scroll-hint">
+            <i class="fa-solid fa-chevron-down" style="display:block;margin-bottom:4px"></i>
+            <span data-en="Scroll to reveal the mold" data-bg="Скролвай, за да видиш калъпа">Scroll to reveal the mold</span>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+    <div class="section-inner">
+        <div class="section-tag"><i class="fa-solid fa-sparkles"></i> <span data-en="CORE FEATURES" data-bg="ОСНОВНИ ФУНКЦИИ">CORE FEATURES</span></div>
+        <div class="section-title" data-en="Everything You Need to Go from Mesh to Mold" data-bg="Всичко необходимо от 3D модел до готов калъп">Everything You Need to Go from Mesh to Mold</div>
+        <p class="section-desc" data-en="One cloud platform that handles mesh repair, mold generation, and export — no CAD experience required." data-bg="Една облачна платформа, която поправя модели, генерира калъпи и експортира — без нужда от CAD опит.">One cloud platform that handles mesh repair, mold generation, and export — no CAD experience required.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon teal"><i class="fa-solid fa-wrench"></i></div>
+                <h3 data-en="Auto Mesh Repair" data-bg="Автоматична поправка на модели">Auto Mesh Repair</h3>
+                <p data-en="Non-manifold, open edges, flipped normals — we fix it all before generating your mold. No cleanup needed." data-bg="Отворени ръбове, обърнати нормали, немонолитни повърхнини — поправяме всичко преди генериране на калъпа.">Non-manifold, open edges, flipped normals — we fix it all before generating your mold. No cleanup needed.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon cyan"><i class="fa-solid fa-layer-group"></i></div>
+                <h3 data-en="Two-Part Mold Generation" data-bg="Генериране на двукомпонентни калъпи">Two-Part Mold Generation</h3>
+                <p data-en="Automatically compute the optimal parting line and generate cavity + core halves with registration keys." data-bg="Автоматично изчисляваме оптималната разделителна линия и генерираме двете половини с направляващи щифтове.">Automatically compute the optimal parting line and generate cavity + core halves with registration keys.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon orange"><i class="fa-solid fa-cube"></i></div>
+                <h3 data-en="Open Tray Molds" data-bg="Отворени калъпи за отливане">Open Tray Molds</h3>
+                <p data-en="Generate simple open-top molds for casting chocolate, resin, soap, and more. Perfect for beginners." data-bg="Генерирайте прости отворени калъпи за отливане на шоколад, смола, сапун и други. Идеални за начинаещи.">Generate simple open-top molds for casting chocolate, resin, soap, and more. Perfect for beginners.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon purple"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <h3 data-en="Cloud-Based — No Install" data-bg="В облака — без инсталация">Cloud-Based — No Install</h3>
+                <p data-en="Works in your browser. Upload STL, OBJ, or STEP files and get downloadable mold files in minutes." data-bg="Работи в браузъра. Качете STL, OBJ или STEP файлове и получете калъп за минути.">Works in your browser. Upload STL, OBJ, or STEP files and get downloadable mold files in minutes.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon teal"><i class="fa-solid fa-file-export"></i></div>
+                <h3 data-en="Export-Ready Files" data-bg="Файлове, готови за експорт">Export-Ready Files</h3>
+                <p data-en="Download production-ready STL or STEP files optimized for 3D printing or CNC machining." data-bg="Свалете STL или STEP файлове, оптимизирани за 3D принтиране или CNC обработка.">Download production-ready STL or STEP files optimized for 3D printing or CNC machining.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon cyan"><i class="fa-solid fa-sliders"></i></div>
+                <h3 data-en="Adjustable Parameters" data-bg="Настройваеми параметри">Adjustable Parameters</h3>
+                <p data-en="Control wall thickness, draft angles, shrinkage compensation, and registration key placement." data-bg="Контролирайте дебелина на стени, ъгли на демолдване, компенсация за свиване и разположение на щифтове.">Control wall thickness, draft angles, shrinkage compensation, and registration key placement.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MOLD TYPES -->
+<section id="mold-types">
+    <div class="section-inner" style="text-align:center">
+        <div class="section-tag" style="justify-content:center"><i class="fa-solid fa-shapes"></i> <span data-en="OUTPUT TYPES" data-bg="ВИДОВЕ ИЗХОД">OUTPUT TYPES</span></div>
+        <div class="section-title" style="color:#fff" data-en="Output Engineered for Every Need" data-bg="Резултати, проектирани за всяка нужда">Output Engineered for Every Need</div>
+        <p class="section-desc" style="margin-left:auto;margin-right:auto;color:rgba(255,255,255,.6)" data-en="From hobbyist desktop printing to industrial tooling." data-bg="От любителско 3D принтиране до индустриална обработка.">From hobbyist desktop printing to industrial tooling.</p>
+        <div class="types-grid">
+            <div class="type-card">
+                <i class="fa-solid fa-layer-group"></i>
+                <h3 data-en="Two-Part Molds" data-bg="Двукомпонентни калъпи">Two-Part Molds</h3>
+                <p data-en="Perfect for injection molding or complex resin casting. Automatic parting line and registration keys." data-bg="Перфектни за шприцоване или сложно отливане. Автоматична разделителна линия и направляващи щифтове.">Perfect for injection molding or complex resin casting. Automatic parting line and registration keys.</p>
+            </div>
+            <div class="type-card">
+                <i class="fa-solid fa-box-open"></i>
+                <h3 data-en="Open Tray Molds" data-bg="Отворени калъпи">Open Tray Molds</h3>
+                <p data-en="Simple top-open molds ideal for chocolate, soap, resin art, and food-safe casting." data-bg="Прости отворени калъпи, идеални за шоколад, сапун, смола и хранително отливане.">Simple top-open molds ideal for chocolate, soap, resin art, and food-safe casting.</p>
+            </div>
+            <div class="type-card">
+                <!-- 3D Printer SVG -->
+                <div class="printer-svg-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M8 48V20a4 4 0 014-4h40a4 4 0 014 4v28a4 4 0 01-4 4H12a4 4 0 01-4-4zm8-36h32v8H16v-8zm2 20h28v16H18V32zm10 4v8h8v-8h-8zM6 8h52a2 2 0 012 2v2H4v-2a2 2 0 012-2z"/></svg>
+                </div>
+                <h3 data-en="3D Printing Ready" data-bg="Готови за 3D принтиране">3D Printing Ready</h3>
+                <p data-en="Export optimized mesh files ready for your FDM or Resin 3D printer. No expensive CNC machining needed." data-bg="Експортирайте оптимизирани файлове за вашия FDM или Resin 3D принтер. Без скъпа CNC обработка.">Export optimized mesh files ready for your FDM or Resin 3D printer. No expensive CNC machining needed.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WHY US -->
+<section id="why-better">
+    <div class="section-inner">
+        <div class="section-tag"><i class="fa-solid fa-trophy"></i> <span data-en="WHY MOLDMASTER" data-bg="ЗАЩО MOLDMASTER">WHY MOLDMASTER</span></div>
+        <div class="section-title" data-en="Built Different" data-bg="Създаден по различен начин">Built Different</div>
+        <p class="section-desc" data-en="No other tool gives you cloud mesh repair + two-part mold output in one click." data-bg="Никой друг инструмент не ви дава облачна поправка на модели + двукомпонентен калъп с едно кликване.">No other tool gives you cloud mesh repair + two-part mold output in one click.</p>
+        <div class="compare-grid">
+            <div class="compare-col us">
+                <h3><i class="fa-solid fa-check-circle"></i> MoldMaster</h3>
+                <div class="compare-item"><i class="fa-solid fa-check"></i><span data-en="Cloud-based — works in any browser, no install" data-bg="В облака — работи във всеки браузър, без инсталация">Cloud-based — works in any browser, no install</span></div>
+                <div class="compare-item"><i class="fa-solid fa-check"></i><span data-en="Automatic mesh repair for broken/non-manifold files" data-bg="Автоматична поправка на счупени/немонолитни файлове">Automatic mesh repair for broken/non-manifold files</span></div>
+                <div class="compare-item"><i class="fa-solid fa-check"></i><span data-en="Two-part molds with computed parting line" data-bg="Двукомпонентни калъпи с изчислена разделителна линия">Two-part molds with computed parting line</span></div>
+                <div class="compare-item"><i class="fa-solid fa-check"></i><span data-en="Downloadable STL/STEP — print at home or send to CNC" data-bg="Сваляеми STL/STEP — принтирайте вкъщи или изпратете за CNC">Downloadable STL/STEP — print at home or send to CNC</span></div>
+                <div class="compare-item"><i class="fa-solid fa-check"></i><span data-en="Affordable subscription — no per-seat CAD license" data-bg="Достъпен абонамент — без скъпи CAD лицензи">Affordable subscription — no per-seat CAD license</span></div>
+            </div>
+            <div class="compare-col them">
+                <h3><i class="fa-solid fa-xmark-circle"></i> <span data-en="Alternatives" data-bg="Алтернативи">Alternatives</span></h3>
+                <div class="compare-item"><i class="fa-solid fa-xmark"></i><span data-en="Desktop-only CAD software — heavy install, steep learning curve" data-bg="CAD софтуер само за десктоп — тежка инсталация, стръмна крива на учене">Desktop-only CAD software — heavy install, steep learning curve</span></div>
+                <div class="compare-item"><i class="fa-solid fa-xmark"></i><span data-en="No automatic mesh repair — manual cleanup required" data-bg="Без автоматична поправка — ръчно почистване">No automatic mesh repair — manual cleanup required</span></div>
+                <div class="compare-item"><i class="fa-solid fa-xmark"></i><span data-en="Basic generators only do simple open molds" data-bg="Базовите генератори правят само прости отворени калъпи">Basic generators only do simple open molds</span></div>
+                <div class="compare-item"><i class="fa-solid fa-xmark"></i><span data-en="Locked into vendor ecosystems or physical service" data-bg="Заключени в екосистемата на доставчика или физическа услуга">Locked into vendor ecosystems or physical service</span></div>
+                <div class="compare-item"><i class="fa-solid fa-xmark"></i><span data-en="Expensive per-seat licenses ($1000+/year)" data-bg="Скъпи лицензи на работно място ($1000+/год)">Expensive per-seat licenses ($1000+/year)</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FINAL CTA -->
+<section id="final-cta">
+    <div class="final-title" data-en="Ready to Make Your First Mold?" data-bg="Готови ли сте за първия си калъп?">Ready to Make Your First Mold?</div>
+    <p class="final-sub" data-en="Start your free trial. No credit card. No install. Just upload a mesh." data-bg="Започнете безплатно. Без кредитна карта. Без инсталация. Просто качете модел.">Start your free trial. No credit card. No install. Just upload a mesh.</p>
+    <a href="#" class="cta-btn cta-primary" style="font-size:1.1rem;padding:16px 40px"><i class="fa-solid fa-rocket"></i> <span data-en="Get Free Trial" data-bg="Безплатен пробен период">Get Free Trial</span></a>
+</section>
+
+<footer>
+    <span>&copy; 2026 MoldMaster. <a href="presentation.html" data-en="View Pitch Deck" data-bg="Виж презентацията">View Pitch Deck</a></span>
+</footer>
+
+<!-- THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+// ============ LANGUAGE TOGGLE ============
+let currentLang = 'en';
+function toggleLanguage(lang) {
+    currentLang = lang;
+    document.querySelectorAll('[data-en]').forEach(el => {
+        el.textContent = el.getAttribute('data-' + lang);
+    });
+    document.getElementById('lang-btn-en').classList.toggle('active', lang === 'en');
+    document.getElementById('lang-btn-bg').classList.toggle('active', lang === 'bg');
+}
+
+// ============ 3D MOLD SCROLL ============
+(function() {
+    const wrap = document.getElementById('mold-canvas-wrap');
+    const section = document.getElementById('mold-3d-section');
+    const hint = document.getElementById('scroll-hint');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111827);
+
+    const camera = new THREE.PerspectiveCamera(40, wrap.clientWidth / wrap.clientHeight, 0.1, 1000);
+    camera.position.set(0, 2, 6);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.physicallyCorrectLights = true;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    wrap.appendChild(renderer.domElement);
+
+    // Lights
+    const amb = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(amb);
+    const dir1 = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir1.position.set(5, 8, 5);
+    scene.add(dir1);
+    const dir2 = new THREE.DirectionalLight(0x88ccff, 0.4);
+    dir2.position.set(-4, -2, -3);
+    scene.add(dir2);
+
+    let partA = null, partB = null, gummyMesh = null;
+    const moldGroup = new THREE.Group();
+    scene.add(moldGroup);
+
+    const loader = new THREE.GLTFLoader();
+    loader.load('mold_example.glb', function(gltf) {
+        gltf.scene.traverse(function(child) {
+            if (!child.isMesh) return;
+            const name = child.name.toLowerCase();
+            if (name.includes('part_a') || name.includes('cavity')) {
+                partA = child;
+            } else if (name.includes('part_b') || name.includes('core')) {
+                partB = child;
+            } else {
+                gummyMesh = child;
+                child.material = child.material.clone();
+                child.material.color.set(0x0d9488);
+                child.material.metalness = 0.1;
+                child.material.roughness = 0.4;
+            }
+        });
+
+        // Center the scene
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const center = box.getCenter(new THREE.Vector3());
+        gltf.scene.position.sub(center);
+        moldGroup.add(gltf.scene);
+
+        // Store original Y positions
+        if (partA) partA.userData.origY = partA.position.y;
+        if (partB) partB.userData.origY = partB.position.y;
+    });
+
+    function getScrollProgress() {
+        const rect = section.getBoundingClientRect();
+        const sectionH = section.offsetHeight - window.innerHeight;
+        const scrolled = -rect.top;
+        return Math.max(0, Math.min(1, scrolled / sectionH));
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const t = getScrollProgress();
+
+        // Separate mold halves
+        const spread = t * 2.5;
+        if (partA) partA.position.y = (partA.userData.origY || 0) + spread;
+        if (partB) partB.position.y = (partB.userData.origY || 0) - spread;
+
+        // Rotate based on scroll
+        moldGroup.rotation.y = t * Math.PI * 1.2;
+
+        // Fade scroll hint
+        if (hint) hint.style.opacity = t < 0.1 ? 1 : 0;
+
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = wrap.clientWidth / wrap.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    });
+})();
+</script>
+</body>
+</html>
